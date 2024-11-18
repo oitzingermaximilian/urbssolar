@@ -51,11 +51,13 @@ def scenario_2(data, param_dict, importcost_dict, instalable_capacity_dict, eu_p
     if not data:
         print("Warning: data is empty.")
         return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    elif 'commodity' in data:
+        co = data['commodity']
         fossil_fuels = ['Lignite', 'Gas', 'Coal', 'Nuclear Fuel']
         for stf in data['global_prop'].index.levels[0].tolist():
-            co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price'] *= 1.5  # percentage increase
+            co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price'] *= 1.5
             for fuel in fossil_fuels:
-                co.loc[(stf, 'EU27', fuel, 'Env'), 'price'] *= 1.5  # percentage increase
+                co.loc[(stf, 'EU27', fuel, 'Stock'), 'price'] *= 1.5
         return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
     else:
         print("Warning: 'commodity' not found in data.")
