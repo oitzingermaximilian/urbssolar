@@ -6,7 +6,7 @@ from .input import *
 
 
 def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
-                 eu_primary_cost_dict, eu_secondary_cost_dict, dt=8760,
+                 eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict, dt=8760,
                  timesteps=None, objective='cost',dual = None):
     """Create a pyomo ConcreteModel urbs object from given input data.
 
@@ -179,7 +179,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.deltaQ_EUsecondary = pyomo.Param(initialize=float(param_dict['dQ EU Secondary']))  # ΔQ EU Secondary
     m.IR_EU_primary = pyomo.Param(initialize=float(param_dict['IR EU Primary']))  # IR EU Primary
     m.IR_EU_secondary = pyomo.Param(initialize=float(param_dict['IR EU Secondary']))  # IR EU Secondary
-    m.DCR_solar = pyomo.Param(initialize=float(param_dict['DCR Solar']))  # DCR Solar
+    m.DCR_solar = pyomo.Param(m.stf, initialize=dcr_dict)  # DCR Solar
     m.DR_primary = pyomo.Param(initialize=float(param_dict['DR Primary']))  # DR Primary
     m.DR_secondary = pyomo.Param(initialize=float(param_dict['DR Secondary']))  # DR Secondary
 
@@ -413,12 +413,12 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.capacity_solar_new_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_new_rule)
     m.capacity_solar_stock_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_stock_rule)
     m.capacity_solar_stock_initial_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_stock_initial_rule)
-    m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
+    #m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
     m.anti_dumping_measures_constraint = pyomo.Constraint(m.stf, rule=anti_dumping_measures_rule)
     m.capacity_solar_new_limit_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_new_limit_rule)
     m.timedelay_EU_primary_production_constraint = pyomo.Constraint(m.stf, rule=timedelay_EU_primary_production_rule)
     m.timedelay_EU_secondary_production_constraint = pyomo.Constraint(m.stf, rule=timedelay_EU_secondary_production_rule)
-    m.constraint_EU_secondary1_to_total_constraint = pyomo.Constraint(m.stf,rule=constraint1_EU_secondary_to_total_rule)
+    #m.constraint_EU_secondary1_to_total_constraint = pyomo.Constraint(m.stf,rule=constraint1_EU_secondary_to_total_rule)
     m.constraint_EU_secondary2_to_total_constraint = pyomo.Constraint(m.stf,rule=constraint2_EU_secondary_to_total_rule)
     m.constraint_EU_primary_to_total_constraint = pyomo.Constraint(m.stf, rule=constraint_EU_primary_to_total_rule)
     m.constraint_EU_secondary_to_secondary_constraint = pyomo.Constraint(m.stf,rule=constraint_EU_secondary_to_secondary_rule)
@@ -1102,7 +1102,7 @@ def co2_rule(m):
 #calculate total urbs costs
 def def_costs_solar(m, cost_type_solar):
     if cost_type_solar == 'Importcost':
-        total_import_cost = sum(m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf]*m.logisticcost) for stf in m.stf)
+        total_import_cost = sum(m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf] for stf in m.stf)
         print("Calculating Import Cost Total:")
         print(f"Total Import Cost = {total_import_cost}")
         return m.costs_solar[cost_type_solar] == total_import_cost
@@ -1141,9 +1141,9 @@ def convert_capacity_3_rule(m, stf):
 def convert_capacity_4_rule(m, stf):
     return m.balance_EU_secondary[stf] == m.capacity_solar_eusecondary[stf] * m.lf_solar * m.hours_year
 
-#Calculate yearly Solar Costs
+#Calculate yearly Solar Costs only for excel output
 def calculate_yearly_importcost(m,stf):
-        return m.costs_solar_import[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf]*m.logisticcost)
+        return m.costs_solar_import[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf]
 def calculate_yearly_storagecost(m,stf):
     return m.costs_solar_storage[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
 def calculate_yearly_EU_primary(m,stf):
@@ -1187,7 +1187,7 @@ def capacity_solar_stock_initial_rule(m, stf):
 
 #Constraint 6:
 def importcost_solar_rule(m, stf):
-    return m.importcost[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf]+ m.capacity_solar_stock_imported[stf]*m.logisticcost)
+    return m.importcost[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf]+ m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf]
 
 #Constraint 7:
 def storagecost_solar_rule(m, stf):
@@ -1271,7 +1271,7 @@ def constraint1_EU_secondary_to_total_rule(m, stf):
 #Constraint 17:
 def constraint2_EU_secondary_to_total_rule(m, stf):
     if m.y0 >= stf-m.l:
-        return m.capacity_solar_eusecondary[stf] <= m.DCR_solar * m.capacity_solar[stf]
+        return m.capacity_solar_eusecondary[stf] <= m.DCR_solar[stf] * m.capacity_solar[stf]
     else:
         return pyomo.Constraint.Skip
 

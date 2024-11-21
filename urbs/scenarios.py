@@ -17,18 +17,17 @@ from openpyxl import load_workbook
 
 
 #base
-def scenario_base(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_base(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     # do nothing
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #normal fossil fuel and delayed CO2 pricing
-def scenario_1(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,
-               eu_secondary_cost_dict):
+def scenario_1(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: param_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'commodity' in data:
         co = data['commodity']
         for stf in data['global_prop'].index.levels[0].tolist():
@@ -40,17 +39,17 @@ def scenario_1(data, param_dict, importcost_dict, instalable_capacity_dict, eu_p
                 # Keep the existing values for 2030 and later years
                 co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price'] = co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price']
 
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'commodity' not found in data.")
 
 ########################################################################################################################
 
 #high fossil fuel and CO2 prices
-def scenario_2(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_2(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'commodity' in data:
         co = data['commodity']
         fossil_fuels = ['Lignite', 'Gas', 'Coal', 'Nuclear Fuel']
@@ -58,32 +57,32 @@ def scenario_2(data, param_dict, importcost_dict, instalable_capacity_dict, eu_p
             co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price'] *= 1.5
             for fuel in fossil_fuels:
                 co.loc[(stf, 'EU27', fuel, 'Stock'), 'price'] *= 1.5
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'commodity' not found in data.")
 
 ########################################################################################################################
 
 #normal fossil fuel and zero CO2 pricing
-def scenario_3(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_3(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'commodity' in data:
         co = data['commodity']
         for stf in data['global_prop'].index.levels[0].tolist():
             co.loc[(stf, 'EU27', 'CO2', 'Env'), 'price'] = 0 #set co2 price to 0
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'commodity' not found in data.")
 
 ########################################################################################################################
 
 #high investement into CCUS technology
-def scenario_4(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_4(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     if 'processes' in data:
         pro = data['processes']
@@ -97,15 +96,15 @@ def scenario_4(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'inv-cost'] *= 0.9
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #low investement into CCUS technology
-def scenario_5(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_5(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     if 'processes' in data:
         pro = data['processes']
@@ -124,16 +123,16 @@ def scenario_5(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
             proco.loc[(stf, 'Coal CCUS','CO2','Out'),'ratio'] *= 4
             proco.loc[(stf, 'Coal Lignite CCUS', 'CO2', 'Out'), 'ratio'] *= 4
             proco.loc[(stf, 'Gas Plant (CCGT) CCUS', 'CO2', 'Out'), 'ratio'] *= 4
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #phase out of fossil fuels with anticipated target years
 
-def scenario_6(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_6(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: param_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'process' in data:
         pro = data['process']
         for stf in data['global_prop'].index.levels[0].tolist():
@@ -150,17 +149,17 @@ def scenario_6(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
                 # If the row is not for 2024, we simply skip it.
                 print(f"Skipping year {stf} as it's not 2024.")
 
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'process' not found in data.")
 
 ########################################################################################################################
 
 #delayed fossil fuel phaseout same as scenario 6
-def scenario_7(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_7(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: param_dict is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'process' in data:
         pro = data['process']
         for stf in data['global_prop'].index.levels[0].tolist():
@@ -177,17 +176,17 @@ def scenario_7(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
                 # If the row is not for 2024, we simply skip it.
                 print(f"Skipping year {stf} as it's not 2024.")
 
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'process' not found in data.")
 
 ########################################################################################################################
 
 #CCUS instead of normal fossil power plants after phase out
-def scenario_8(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_8(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     if 'processes' in data:
         pro = data['processes']
@@ -198,21 +197,21 @@ def scenario_8(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
             if stf >= 2033:
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #meeting expansion plans for REPowerEU
-def scenario_9(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+def scenario_9(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #high tolerance for RES expansion
-def scenario_10(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_10(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data or not instalable_capacity_dict:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     if 'process' in data:
         pro = data['process']
@@ -245,15 +244,15 @@ def scenario_10(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         print("Updated eu_primary_cost_dict:", instalable_capacity_dict)
 
     # Return the updated dictionaries/data
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #low tolerance for RES expansion
-def scenario_11(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_11(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data or not instalable_capacity_dict:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     if 'process' in data:
         pro = data['process']
@@ -286,16 +285,16 @@ def scenario_11(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         print("Updated eu_primary_cost_dict:", instalable_capacity_dict)
 
         # Return the updated dictionaries/data
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #high importcost due to importtolls on solar modules
 
-def scenario_12(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_12(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not importcost_dict or not param_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     for year, cost in importcost_dict.items():
         try:
             year_int = int(year)
@@ -310,16 +309,16 @@ def scenario_12(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         new_value = current_value + 0.05 #add 5%
         param_dict['anti dumping Index'] = new_value
         print("anti dumping Index updated.")
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #subsidees on eu manufacturing in order to achieve independence from China
 
-def scenario_13(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_13(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not eu_primary_cost_dict or not param_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     for year, cost in eu_primary_cost_dict.items():
         try:
             year_int = int(year)
@@ -334,16 +333,16 @@ def scenario_13(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         new_value = current_value + 0.05 #add 5%
         param_dict['anti dumping Index'] = new_value
         print("anti dumping Index updated.")
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #complete importstop on solar modules from China due to sanctions
 
-def scenario_14(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_14(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not importcost_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     for year, cost in importcost_dict.items():
         try:
             year_int = int(year)
@@ -352,17 +351,17 @@ def scenario_14(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 importcost_dict[year] = new_cost
         except ValueError:
             print(f"Warning: Non-numeric year '{year}' found. Skipping.")
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #high investements and development  for domestic production and recycling
 
-def scenario_15(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_15(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
 
     if not param_dict or not eu_primary_cost_dict or not eu_secondary_cost_dict:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     # Check if 'commodity' exists in the data and modify it
     if 'IR EU Primary' in param_dict:
@@ -407,16 +406,16 @@ def scenario_15(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 print(f"Warning: Non-numeric year '{year}' found. Skipping.")
         print("Updated eu_secondary_cost_dict:", eu_secondary_cost_dict)
     # Return the updated dictionaries/data
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #high volatility for domestic production and recycling
-def scenario_16(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_16(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
 
     if not param_dict:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     # Check if 'commodity' exists in the data and modify it
     if 'DR Primary' in param_dict:
@@ -432,16 +431,16 @@ def scenario_16(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         param_dict['DR Secondary'] = new_value
         print("DR updated.")
 
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #low volatility for domestic production and recycling
-def scenario_17(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_17(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
 
     if not param_dict:
         print("One or more dictionaries are empty. Returning original data.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     # Check if 'commodity' exists in the data and modify it
     if 'DR Primary' in param_dict:
@@ -457,15 +456,15 @@ def scenario_17(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
         param_dict['DR Secondary'] = new_value
         print("DR updated.")
 
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #diversify import countries
-def scenario_18(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_18(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not importcost_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     for year, cost in importcost_dict.items():
         try:
             year_int = int(year)
@@ -474,15 +473,15 @@ def scenario_18(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 importcost_dict[year] = new_cost
         except ValueError:
             print(f"Warning: Non-numeric year '{year}' found. Skipping.")
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #slow and steady reduction of CO2 emissions
-def scenario_19(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_19(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     # Predefined CO2 limit values for years 2024–2050
     co2_limit_slow_steady = [
@@ -505,15 +504,15 @@ def scenario_19(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 print(f"Year {year} is not found in global_prop index levels.")
     else:
         print("Warning: 'global_prop' not found in data.")
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #late and rapid reduction of CO2 emissions
-def scenario_20(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_20(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
     # Predefined CO2 limit values for years 2024–2050
     co2_limit_late_rapid = [
@@ -536,15 +535,15 @@ def scenario_20(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 print(f"Year {year} is not found in global_prop index levels.")
     else:
         print("Warning: 'global_prop' not found in data.")
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #100% decarbonization of energy sector
-def scenario_21(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_21(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     if 'global_prop' in data:
         global_prop = data['global_prop']
         for stf in global_prop.index.levels[0].tolist():
@@ -553,28 +552,28 @@ def scenario_21(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
             else:
                 print(f"Skipping year {stf} as it's not 2024.")
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #staying below 1.5 degrees
-def scenario_22(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+def scenario_22(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #above 2 degrees
-def scenario_23(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
-    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+def scenario_23(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #abort all climate change measures since USA left Paris Climate Agreement
-def scenario_24(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_24(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
 
     if not data:
         print("Warning: data is empty.")
-        return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     if 'commodity' in data:
         co = data['commodity']
         for stf in data['global_prop'].index.levels[0].tolist():
@@ -591,15 +590,15 @@ def scenario_24(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
             pro.loc[(stf, 'EU27', 'Coal Lignite'), 'cap-up'] = 9999999#Value for cap up
             pro.loc[(stf, 'EU27', 'Gas Plant (CCGT)'), 'cap-up'] =9999999 #Value for cap up
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #high electricity demand due to increasing electrification
-def scenario_25(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_25(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data:
         print("Warning: param_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     elif 'demand' in data:
         de = data['demand']
         print(de.index)
@@ -612,17 +611,17 @@ def scenario_25(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 de.loc[(stf, t), ('EU27', 'Elec')] *= 1.1
                 # Print the updated value
                 print(f"After modification - Year {stf}, t={t}: {de.loc[(stf, t), ('EU27', 'Elec')]}")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     else:
         print("Warning: 'demand' not found in data.")
 
 ########################################################################################################################
 
 #technofriendly
-def scenario_26(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_26(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data or not importcost_dict or not eu_primary_cost_dict or not eu_secondary_cost_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     if importcost_dict:
         for year, cost in importcost_dict.items():
             try:
@@ -664,15 +663,15 @@ def scenario_26(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 co.loc[(stf, 'EU27', carrier, 'Env'), 'fix-cost'] *= 0.9
                 co.loc[(stf, 'EU27', carrier, 'Env'), 'var-cost'] *= 0.9
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 ########################################################################################################################
 
 #global economical crisis
-def scenario_27(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict):
+def scenario_27(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
     if not data or not importcost_dict or not eu_primary_cost_dict or not eu_secondary_cost_dict:
         print("Warning: importcost_dict is empty.")
-        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
     if importcost_dict:
         for year, cost in importcost_dict.items():
             try:
@@ -714,7 +713,7 @@ def scenario_27(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
                 pro.loc[(stf, 'EU27', carrier, 'Env'), 'fix-cost'] *= 1.5
                 pro.loc[(stf, 'EU27', carrier, 'Env'), 'var-cost'] *= 1.5
 
-    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
 
 

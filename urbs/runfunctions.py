@@ -107,7 +107,9 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
         'importcost': 'importcost_dict',
         'instalable_capacity': 'instalable_capacity_dict',
         'eu_primary_cost': 'eu_primary_cost_dict',
-        'eu_secondary_cost': 'eu_secondary_cost_dict'
+        'eu_secondary_cost': 'eu_secondary_cost_dict',
+        'dcr': 'dcr_dict'
+
     }
 
 
@@ -119,13 +121,15 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
     instalable_capacity_dict = data_dicts['instalable_capacity_dict']
     eu_primary_cost_dict = data_dicts['eu_primary_cost_dict']
     eu_secondary_cost_dict = data_dicts['eu_secondary_cost_dict']
+    dcr_dict = data_dicts['dcr_dict']
 
 
-    data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict = scenario(data,param_dict.copy(),
+    data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict = scenario(data,param_dict.copy(),
         importcost_dict.copy(),
         instalable_capacity_dict.copy(),
         eu_primary_cost_dict.copy(),
-        eu_secondary_cost_dict.copy())
+        eu_secondary_cost_dict.copy(),
+        dcr_dict.copy())
 
 
     ### --------end of urbs-solar input data addition-------- ###
@@ -135,7 +139,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
     # create model
     prob = create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
-                    eu_primary_cost_dict, eu_secondary_cost_dict, dt, timesteps, objective)
+                    eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict, dt, timesteps, objective)
 
     # prob_filename = os.path.join(result_dir, 'model.lp')
     # prob.write(prob_filename, io_options={'symbolic_solver_labels':True})
