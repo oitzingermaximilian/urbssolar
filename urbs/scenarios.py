@@ -859,6 +859,12 @@ def scenario_29(data, param_dict, importcost_dict, instalable_capacity_dict, eu_
         eu_primary_cost_dict[year] = float(cost) * 1.5
     print("Updated eu_primary_cost_dict:", importcost_dict)
 
+    if 'anti dumping Index' in param_dict:
+        current_value = float(param_dict['anti dumping Index'])
+        new_value = current_value + 0.2 # +20%
+        param_dict['anti dumping Index'] = new_value
+       print("anti dumping Index updated.")
+
     return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
 
 
@@ -919,6 +925,11 @@ def scenario_31(data, param_dict, importcost_dict, instalable_capacity_dict, eu_
         param_dict['DR Secondary'] = new_value
         print("DR updated.")
 
+    if 'anti dumping Index' in param_dict:
+        current_value = float(param_dict['anti dumping Index'])
+        new_value = 0
+        param_dict['anti dumping Index'] = new_value
+       print("anti dumping Index updated.")
     return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
 
 
