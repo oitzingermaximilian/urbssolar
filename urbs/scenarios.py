@@ -122,19 +122,19 @@ def scenario_4(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
 
                 # SEB_ Auf welchen Wert ist 'cap-up' ursprünglich gesetzt, also bevor du den Wert auf 9999 setzt? Max: aktuell disabled
                 # Welche Einheit hat der Wert 9999, sind das GW? Max: MW
-                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal CCUS'), 'inv-cost'] *= 0.9
-                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'inv-cost'] *= 0.9
-                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'inv-cost'] *= 0.9
             if stf >= 2035:
                 # SEB_ Ich würde da noch etwas stärker die Investitionskosten reduzieren, vielleicht so 0.75
-                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal CCUS'), 'inv-cost'] *= 0.75
-                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'inv-cost'] *= 0.75
-                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'inv-cost'] *= 0.75
 
     return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
@@ -156,12 +156,12 @@ def scenario_5(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
         pro = data['processes']
         for stf in data['global_prop'].index.levels[0].tolist():
             if stf >= 2029:
-                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal CCUS'), 'inv-cost'] *= 1.1
-                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'inv-cost'] *= 1.1
             if stf >= 2033:
-                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 999999
                 pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'inv-cost'] *= 1.1
     if 'process_commodity' in data:
         proco = data['process_commodity']
