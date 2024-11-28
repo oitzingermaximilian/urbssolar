@@ -432,7 +432,9 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.EUprimary_cost_yearly_constraint =pyomo.Constraint(m.stf, rule=calculate_yearly_EU_primary)
     m.EUsecondary_cost_yearly_constraint = pyomo.Constraint(m.stf, rule=calculate_yearly_EU_secondary)
     m.balance_solar_constraint = pyomo.Constraint(m.stf, rule=convert_totalcapacity_to_balance)
-
+    #m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_a)
+    #m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
+                   
     # commodity constraints default
     m.res_vertex = pyomo.Constraint(
         m.tm, m.com_tuples,
@@ -1289,7 +1291,15 @@ def constraint_EU_secondary_to_secondary_rule(m, stf):
     else:
         return m.capacity_solar_eusecondary[stf] >= m.DR_secondary * m.capacity_solar_eusecondary[stf-1]
 
-#TBD
+#Addition made on 28th November:
 
+def net_zero_industrialactbenchmark_rule_a(m, stf):
+  return (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf] + m.capacity_solar_stockout[stf]) >= (0.4 * m.capacity_solar_new[stf])
+
+def net_zero_industrialactbenchmark_rule_b(m, stf):
+  return  (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf]) >= (0.4 * m.capacity_solar_new[stf])
+
+
+#TBD
 
 
