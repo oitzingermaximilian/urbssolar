@@ -220,9 +220,9 @@ def scenario_7(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
             if 'lifetime' in pro.columns:  # Check for the specific timeframe
                 try:
                     # Modify the process lifetimes as per the scenario
-                    pro.loc[(stf, 'EU27', 'Coal Plant'), 'lifetime'] = 11  # new phaseout years 2024 + value 2035
-                    pro.loc[(stf, 'EU27', 'Coal Lignite'), 'lifetime'] = 11  # new phaseout years 2024 + value 2035
-                    pro.loc[(stf, 'EU27', 'Gas Plant (CCGT)'), 'lifetime'] = 16  # new phaseout years 2024 + value  2040
+                    pro.loc[(stf, 'EU27', 'Coal Plant'), 'lifetime'] = 5  # new phaseout years 2024 + value 2030
+                    pro.loc[(stf, 'EU27', 'Coal Lignite'), 'lifetime'] = 5  # new phaseout years 2024 + value 2030
+                    pro.loc[(stf, 'EU27', 'Gas Plant (CCGT)'), 'lifetime'] =10   # new phaseout years 2024 + value  2033
                 except KeyError as e:
                     print(f"Warning: KeyError for {e}. The process might not exist for 2024.")
             else:
@@ -245,10 +245,10 @@ def scenario_8(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pri
         pro = data['processes']
         for stf in data['global_prop'].index.levels[0].tolist():
             if stf >= 2029:
-                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 9999
-                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Coal CCUS'), 'cap-up'] = 999999
+                pro.loc[(stf, 'EU27', 'Coal Lignite CCUS'), 'cap-up'] = 999999
             if stf >= 2033:
-                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 9999
+                pro.loc[(stf, 'EU27', 'Gas Plant (CCGT) CCUS'), 'cap-up'] = 999999
 
     return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
 
@@ -863,7 +863,7 @@ def scenario_29(data, param_dict, importcost_dict, instalable_capacity_dict, eu_
         current_value = float(param_dict['anti dumping Index'])
         new_value = current_value + 0.2 # +20%
         param_dict['anti dumping Index'] = new_value
-       print("anti dumping Index updated.")
+
 
     return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
 
@@ -929,10 +929,135 @@ def scenario_31(data, param_dict, importcost_dict, instalable_capacity_dict, eu_
         current_value = float(param_dict['anti dumping Index'])
         new_value = 0
         param_dict['anti dumping Index'] = new_value
-       print("anti dumping Index updated.")
+        print("anti dumping Index updated.")
+
     return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
 
 
-
+#enable TO-Constraint!!
 def scenario_32(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
+    if not importcost_dict or not param_dict:
+        print("Warning: importcost_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+    for year, cost in importcost_dict.items():
+        try:
+            year_int = int(year)
+            if year_int >= 2035: #year where importcost suddenly rises
+                new_cost = float(cost) * 2  # Factor by how much
+                importcost_dict[year] = new_cost
+        except ValueError:
+            print(f"Warning: Non-numeric year '{year}' found. Skipping.")
+
+    if 'anti dumping Index' in param_dict:
+        current_value = float(param_dict['anti dumping Index'])
+        new_value = current_value + 0.05 #add 5% startwert 0
+        param_dict['anti dumping Index'] = new_value
+        print("anti dumping Index updated.")
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+#enable TO-Constraint!!
+def scenario_33(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict):
+    if not importcost_dict:
+        print("Warning: importcost_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+    for year, cost in importcost_dict.items():
+        try:
+            year_int = int(year)
+            if year_int >= 2035: #sudden import stop
+                new_cost = float(cost) * 9999999999999  # Factor by how much
+                importcost_dict[year] = new_cost
+        except ValueError:
+            print(f"Warning: Non-numeric year '{year}' found. Skipping.")
+
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+
+def scenario_34(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    print('SCENARIO 34 industrial act benchmark A')
     return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
+
+
+def scenario_35(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    print('SCENARIO 34 industrial act benchmark B')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict
+
+def scenario_36(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    if not importcost_dict:
+        print("Warning: importcost_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+    importcost_dict = {int(year): value for year, value in importcost_dict.items()}
+    base_2030 = importcost_dict[2030]
+    base_2040 = importcost_dict[2040]
+    for year in range(2030, 2036):
+        factor = 1 + ((year - 2030) / 5)  # Gradually increase to 2x in 2035
+        importcost_dict[year] = base_2030 * factor
+    for year in range(2036, 2041):
+        factor = (2040 - year) / (2040 - 2035)  # Gradually return to base_2040
+        importcost_dict[year] = base_2040 + (base_2030 * 2 - base_2040) * factor
+    print("Updated importcost_dict:", importcost_dict)
+
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+
+
+#enable TO-Constraint!!
+def scenario_37(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    if not importcost_dict:
+        print("Warning: importcost_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+    importcost_dict = {int(year): value for year, value in importcost_dict.items()}
+    base_2030 = importcost_dict[2030]
+    base_2040 = importcost_dict[2040]
+    for year in range(2030, 2036):
+        factor = 1 + ((year - 2030) / 5)  # Gradually increase to 2x in 2035
+        importcost_dict[year] = base_2030 * factor
+    for year in range(2036, 2041):
+        factor = (2040 - year) / (2040 - 2035)  # Gradually return to base_2040
+        importcost_dict[year] = base_2040 + (base_2030 * 2 - base_2040) * factor
+    print("Updated importcost_dict:", importcost_dict)
+
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+def scenario_38(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    if not instalable_capacity_dict:
+        print("Warning: instalable_capacity_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+    years = list(range(2024, 2051))  # From 2024 to 2050 inclusive
+    start_capacity_2024 = 56000  # in MW
+    min_capacity_2040 = 40000    # in MW
+    end_capacity_2050 = 60000   # in MW
+    for year in range(2024, 2041):  # Includes 2040
+        instalable_capacity_dict[year] = start_capacity_2024 + (min_capacity_2040 - start_capacity_2024) * (year - 2024) / (2040 - 2024)
+
+    for year in range(2040, 2051):  # Includes 2050
+        instalable_capacity_dict[year] = min_capacity_2040 + (end_capacity_2050 - min_capacity_2040) * (year - 2040) / (2050 - 2040)
+
+    # Debugging: Print updated dictionary
+    print("Updated instalable_capacity_dict:", instalable_capacity_dict)
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+
+def scenario_39(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    if not instalable_capacity_dict:
+        print("Warning: instalable_capacity_dict is empty.")
+        return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+    base_capacity_2024 = 56000  # in GW
+    annual_increase_rate = 0.10  # 10% per year
+
+    # Iterate through the years and calculate the capacity
+    for year in sorted(instalable_capacity_dict.keys()):
+        if year >= 2024:
+            # Formula for exponential growth: value = initial * (1 + rate)^(year - start_year)
+            instalable_capacity_dict[year] = base_capacity_2024 * (1 + annual_increase_rate) ** (year - 2024)
+
+    # Debugging: Print updated dictionary
+    print("Updated instalable_capacity_dict:", instalable_capacity_dict)
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+def scenario_40(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
+    print('RUNNING SCENARIO 40')
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict

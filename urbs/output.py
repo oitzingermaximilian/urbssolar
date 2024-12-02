@@ -62,6 +62,7 @@ def get_constants(instance):
     capacity_solar_total = get_entity(instance, 'capacity_solar')
 
     e_pro_out_df = get_entity(instance, 'e_pro_out')
+    print(e_pro_out_df)
 
 #####Process df's to be used in report sheets
 
@@ -71,6 +72,7 @@ def get_constants(instance):
 
 ####us_balance
     e_pro_out_elec = {key: value for key, value in e_pro_out_df.items() if key[-1] == 'Elec'}
+    print(e_pro_out_elec)
     df_Elec = pd.DataFrame(list(e_pro_out_elec.items()), columns=['Index', 'Value'])
     df_Elec['Stf'] = df_Elec['Index'].apply(lambda x: int(x[1]))
     df_bsolar = pd.DataFrame(bsolar, columns=['balance_solar'])
