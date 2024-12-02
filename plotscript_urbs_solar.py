@@ -8,7 +8,7 @@ plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Times New Roman'
 
 # Set the directory where the results are located
-result_dir = 'result/Intertemp-20241110T1315'  # Adjust this path as needed
+result_dir = 'result/urbs-rerun-20241202T2019'  # Adjust this path as needed
 
 #balance plots
 for filename in os.listdir(result_dir):
@@ -21,12 +21,11 @@ for filename in os.listdir(result_dir):
 
             # Define the energy sources (categories)
             carriers = ['Biomass Plant', 'Wind (onshore)', 'Wind (offshore)', 'Nuclear Plant',
-                        'Hydro (run-of-river)', 'Hydro (reservoir)', 'Gas Plant (CCGT)', 'Coal Plant',
-                        'Coal Lignite', 'Solar']
+                        'Hydro (run-of-river)', 'Hydro (reservoir)', 'Gas Plant (CCGT)', 'Coal Plant','Coal Lignite CCUS',
+                        'Coal Lignite' ,'Coal CCUS','Gas Plant (CCGT) CCUS', 'Solar']
 
             # Initialize empty DataFrames for each year (to store energy demand by carrier)
             energy_dem_y = pd.DataFrame(index=carriers, columns=years)
-
             # Fill the DataFrame with the values from your dataset
             for year in years:
                 temp_df = df[df['Stf'] == year]
@@ -45,7 +44,6 @@ for filename in os.listdir(result_dir):
             # Prepare the data for stackplot
             x = years
             y = energy_dem_plot.values  # Values to be stacked
-
             # Define colors for each energy source
             colors = {
                 'Biomass Plant': '#FFB347',  # Pastel blue for biomass
@@ -57,10 +55,15 @@ for filename in os.listdir(result_dir):
                 'Solar': '#FDFD96',  # Pastel yellow for solar
                 'Gas Plant (CCGT)': '#FF6961',  # Light red for gas
                 'Coal Plant': '#B0B0B0',  # Light grey for coal plant
-                'Coal Lignite': '#808080'  # Dark grey for coal lignite
-            }
+                'Coal Lignite': '#808080', # Dark grey for coal lignite
+                'Gas Plant (CCGT) CCUS': 'black',
+                'Coal CCUS': 'black',
+                'Coal Lignite CCUS': 'black'
 
+            }
             # Stackplot for each carrier
+
+
             ax.stackplot(x, y, labels=carriers, colors=[colors[carrier] for carrier in carriers], alpha=0.8)
 
             # Set grid, labels, and limits
@@ -133,10 +136,8 @@ for filename in os.listdir(result_dir):
             df_pivot_gw = df_pivot / 1e3 #MW to GW
             df_plot = df_pivot_gw[[col for col in df_pivot_gw.columns if not col.startswith('capacity_solar_')]]
 
-
-
             colors = {
-                'Biomass Plant': '#FFB347',  # Pastel orange for biomass
+                'Biomass Plant': '#FFB347',  # Pastel blue for biomass
                 'Wind (onshore)': '#77DD77',  # Pastel green for onshore wind
                 'Wind (offshore)': '#006400',  # Dark green for offshore wind
                 'Nuclear Plant': '#FFB6C1',  # Light pastel pink for nuclear
@@ -145,7 +146,11 @@ for filename in os.listdir(result_dir):
                 'Solar': '#FDFD96',  # Pastel yellow for solar
                 'Gas Plant (CCGT)': '#FF6961',  # Light red for gas
                 'Coal Plant': '#B0B0B0',  # Light grey for coal plant
-                'Coal Lignite': '#808080'  # Dark grey for coal lignite
+                'Coal Lignite': '#808080',  # Dark grey for coal lignite
+                'Gas Plant (CCGT) CCUS': 'black',
+                'Coal CCUS': 'black',
+                'Coal Lignite CCUS': 'black'
+
             }
 
 
@@ -329,13 +334,17 @@ for filename in os.listdir(result_dir):
             df_pivot /= 1e9  # Divide by 1 billion to convert to billion euros
             nicer_names = {
                 'Biomass Plant': 'Biomass Plant',
+                'Coal CCUS': 'Coal Plant CCUS',
                 'Coal Lignite': 'Coal Lignite',
+                'Coal Lignite CCUS': 'Coal Lignite CCUS',
                 'Coal Plant': 'Coal Plant',
                 'Gas Plant (CCGT)': 'Gas Plant (CCGT)',
+                'Gas Plant (CCGT) CCUS': 'Gas Plant (CCGT) CCUS',
                 'Hydro (reservoir)': 'Hydro (reservoir)',
                 'Hydro (run-of-river)': 'Hydro (run-of-river)',
                 'Nuclear Plant': 'Nuclear Plant',
                 'Wind (offshore)': 'Wind (offshore)',
+                'Wind (onshore)': 'Wind (onshore)',
                 'costs_EU_primary': 'Manufacturing Solar',
                 'costs_EU_secondary': 'Recycling Solar',
                 'costs_solar_import': 'Import Solar',
@@ -352,7 +361,11 @@ for filename in os.listdir(result_dir):
                 'Hydro (reservoir)': '#74B3D6',  # Slightly darker pastel blue for reservoir hydro
                 'Gas Plant (CCGT)': '#FF6961',  # Light red for gas
                 'Coal Plant': '#B0B0B0',  # Light grey for coal plant
-                'Coal Lignite': '#808080',  # Dark grey for coal lignite
+                'Coal Lignite': '#808080',# Dark grey for coal lignite
+                'Gas Plant (CCGT) CCUS': 'black',
+                'Coal Plant CCUS': 'black',
+                'Coal Lignite CCUS': 'black',
+                # Dark grey for coal lignite
 
                 # Distinguishable palette for Solar costs
                 'Manufacturing Solar': '#FFFACD',  # Lemon chiffon (soft yellow) for manufacturing solar

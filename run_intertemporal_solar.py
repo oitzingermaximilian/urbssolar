@@ -7,7 +7,7 @@ input_files = 'urbs_intertemporal_2050'  # for single year file name, for intert
 input_dir = 'Input'
 input_path = os.path.join(input_dir, input_files)
 
-result_name = 'urbs'
+result_name = 'urbs-rerun'
 result_dir = urbs.prepare_result_directory(result_name)  # name + time stamp
 
 #get year
@@ -58,9 +58,45 @@ for country, color in my_colors.items():
 
 # select scenarios to be run
 scenarios = [
-    urbs.scenario_base
+    urbs.scenario_base,
+    urbs.scenario_1,
+    urbs.scenario_2,
+    urbs.scenario_3,
+    urbs.scenario_4,
+    urbs.scenario_6,
+    urbs.scenario_7,
+    urbs.scenario_8,
+    urbs.scenario_10,
+    urbs.scenario_11,
+    urbs.scenario_12,
+    urbs.scenario_13,
+    urbs.scenario_14,
+    urbs.scenario_15,
+    urbs.scenario_16,
+    urbs.scenario_17,
+    urbs.scenario_18,
+    urbs.scenario_19,
+    urbs.scenario_20,
+    urbs.scenario_21,
+    urbs.scenario_25,
+    urbs.scenario_26,
+    urbs.scenario_27,
+    urbs.scenario_28,
+    urbs.scenario_29,
+    urbs.scenario_30,
+    urbs.scenario_31,
+    #urbs.scenario_32,
+    #urbs.scenario_33,
+    #urbs.scenario_34
+    #urbs.scenario_35
+    urbs.scenario_36,
+    #urbs.scenario_37
+    urbs.scenario_38
+    #urbs.scenario_39
+    #urbs.scenario_40
 
 ]
+
 
 
 for scenario in scenarios:
