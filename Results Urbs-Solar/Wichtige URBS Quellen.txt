@@ -1,0 +1,55 @@
+Quellen urbs input data:
+
+TYNDP-2024 Scenario Package - Methodology Report:
+
+S.91 : Onshore Potential for 2050 900 GW
+S.92: Offshore Potential for 2050 800 GW
+S.33: 55-year lifetime for existing, under construction and planned units
+
+https://ember-climate.org/data/data-tools/european-electricity-prices-and-costs/ price for CO2 etc
+https://ember-climate.org/insights/research/european-electricity-review-2024/
+https://heatroadmap.eu/wp-content/uploads/2020/01/HRE4_D6.1-Future-fuel-price-review.pdf Biomass price#
+
+EU Energy in figures 2023 - https://op.europa.eu/en/publication-detail/-/publication/bb9f16ee-642f-11ee-9220-01aa75ed71a1/
+
+https://energy-charts.info/charts/installed_power/chart.htm?l=en&c=EU - Frauenhofer Institut 
+
+Net installed electricity generation capacity in the European Union in 2023: verwendet für excel liste!
+
+Solar: 210,7 GW
+Wind Onshore: 195,3 GW
+Wind offshore: 18,88 GW
+hydro Water Reservoir: 59,84 GW
+hydro pumped storage: 39,67 GW
+hydro ror: 46,71 GW
+Fossil gas: 188,9 GW
+Fossil hard coal: 53,56 GW
+lignite coal: 43,59 GW
+Biomass: 20,42 GW
+Nuclear: 94,2 GW
+
+https://climateanalytics.org/publications/15c-pathways-for-the-eu27-accelerating-climate-action-to-deliver-the-paris-agreement
+
+pdf quelle: https://ca1-clm.edcdn.com/assets/1-5pathwaysforeu27-2022.pdf?v=1697120728
+
+coal phase-out by 2029 and gas by mid 2033 Seite 25 
+A transition to 100% renewable electricity by 2050 at the latest
+nuclear phase out 2050
+
+decarbonisation eu energy system - https://www.nature.com/articles/s41467-020-20015-4
+
+climate neutral 2050 
+
+-21 GtCO2 for electricity
+-System Cost for early and steady path 7875 b€ -> late and rapid 8238b€
+
+Hydro Power Potentials: file:///F:/JRC134918_01.pdf
+
+s.18: According to Xu et al., (2015)27
+, Europe has a hydropower technical potential of 1121 TWh per year (hereinafter, 
+TWh/y), and, with a current production of 569 TWh/y and installed capacity of 258 GW.
+
+potential nicht sehr groß, bleibt gleich
+
+TODO: set CO2 Prices --> maybe as scenario
+set CO2 Limits
