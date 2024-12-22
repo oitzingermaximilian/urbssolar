@@ -8,7 +8,7 @@ plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Times New Roman'
 
 # Set the directory where the results are located
-result_dir = 'result/urbs-rerun-20241202T2019'  # Adjust this path as needed
+result_dir = 'result/urbs-rerun-20241205T1823'  # Adjust this path as needed
 
 #balance plots
 for filename in os.listdir(result_dir):
