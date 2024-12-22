@@ -1061,3 +1061,7 @@ def scenario_39(data, param_dict, importcost_dict, instalable_capacity_dict, eu_
 def scenario_40(data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict,eu_secondary_cost_dict, dcr_dict):
     print('RUNNING SCENARIO 40')
     return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict
+
+def scenario_base_minstock(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    # do nothing
+    return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict

@@ -6,7 +6,7 @@ from .input import *
 
 
 def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
-                 eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict, dt=8760,
+                 eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict, dt=8760,
                  timesteps=None, objective='cost',dual = None):
     """Create a pyomo ConcreteModel urbs object from given input data.
 
@@ -182,6 +182,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.DCR_solar = pyomo.Param(m.stf, initialize=dcr_dict)  # DCR Solar
     m.DR_primary = pyomo.Param(initialize=float(param_dict['DR Primary']))  # DR Primary
     m.DR_secondary = pyomo.Param(initialize=float(param_dict['DR Secondary']))  # DR Secondary
+    m.min_stocklvl = pyomo.Param(m.stf, initialize=stocklvl_dict)
 
 
     # Capacity to Balance with loadfactor and h/a
@@ -443,6 +444,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     #m.best_estimate_TYNDP2030 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2030_rule)
     #m.best_estimate_TYNDP2040 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2040_rule)
     #m.best_estimate_TYNDP2050 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2050_rule)
+    m.minimum_stock_level = pyomo.Constraint(m.stf, rule=minimum_stock_level_rule)
 
 
 
@@ -1310,3 +1312,7 @@ def best_estimate_TYNDP2050_rule(m, stf):
 
 def max_intostock_rule(m, stf):
     return (m.capacity_solar_stock_imported[stf]) <= (0.5 * m.capacity_solar_imported[stf])
+
+
+def minimum_stock_level_rule(m,stf):
+    return (m.min_stocklvl[stf]) <= (m.capacity_solar_stock[stf])
