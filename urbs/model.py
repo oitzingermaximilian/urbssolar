@@ -143,6 +143,28 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         initialize=m.cost_type_list,
         doc='Set of cost types (hard-coded)')
 
+    ########################################
+    # dynamic feedback loop sets and params#     13. January 2025
+    ########################################
+
+    # -------EU-Primary-------#
+    #index set for n (=steps of linearization)
+    m.nsteps_pri = pyomo.Set(initialize=range(0, 5))
+    #param def for price reduction
+    m.P_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 500, 2: 750, 3: 900, 4: 1000})
+    m.capacityperstep_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 20000, 2: 50000, 3: 150000, 4: 500000})
+    #param for gamma
+    m.gamma_pri = pyomo.Param(initialize=1e10)
+
+    # -------EU-Secondary-------#
+    #index set for n (=steps of linearization)
+    m.nsteps_sec = pyomo.Set(initialize = range(0,5))
+    #param def for price reduction
+    m.P_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 750, 2: 1300, 3: 1700, 4: 2000})
+    #param def for Capacity needed to reach next step
+    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 20000, 2: 35000, 3: 50000, 4: 100000})
+    #param for gamma
+    m.gamma_sec = pyomo.Param(initialize=1e10)
 
     ########################################
     # New Sets & Params used for urbs-solar#
@@ -162,9 +184,9 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.Installed_Capacity_Q_s = pyomo.Param(initialize=int(param_dict['InitialCapacity']))  # Initial installed capacity MW
     m.Existing_Stock_Q_stock = pyomo.Param(initialize=int(param_dict['Existing Stock in y0']))  # Initial stock in y0
     m.Q_Solar_new = pyomo.Param(m.stf, initialize=instalable_capacity_dict)
-    print("Initialized values for Q_Solar_new:")
-    for stf in m.stf:
-        print(f"Year: {stf}, Q_Solar_new: {m.Q_Solar_new[stf]}")
+    #print("Initialized values for Q_Solar_new:")
+    #for stf in m.stf:
+    #    print(f"Year: {stf}, Q_Solar_new: {m.Q_Solar_new[stf]}")
 
     # cost params in €/MW
     m.IMPORTCOST = pyomo.Param(m.stf, initialize=importcost_dict)
@@ -346,6 +368,17 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         doc='Power flow out of process (MW) per timestep')
 
 
+    ########################################
+    #       dynamic feedback loop vars     #     13. January 2025
+    ########################################
+    # -------EU-Primary-------#
+    m.pricereduction_pri = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
+    m.BD_pri = pyomo.Var(m.stf, m.nsteps_pri, domain=pyomo.Binary)
+
+    # -------EU-Secondary-------#
+    m.pricereduction_sec = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
+    m.BD_sec = pyomo.Var(m.stf, m.nsteps_sec, domain = pyomo.Binary)
+
     ################################
     # Variables used for urbs_solar#
     ################################
@@ -440,13 +473,32 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     #Constraints for Scenarios ENABLE IF NEEDED
     #m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
     #m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_a)
-    #m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
+    m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
     #m.best_estimate_TYNDP2030 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2030_rule)
     #m.best_estimate_TYNDP2040 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2040_rule)
     #m.best_estimate_TYNDP2050 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2050_rule)
-    m.minimum_stock_level = pyomo.Constraint(m.stf, rule=minimum_stock_level_rule)
+    #m.minimum_stock_level = pyomo.Constraint(m.stf, rule=minimum_stock_level_rule)
 
+    #constraints dynamic feedback loop
+    #Eu_pri
+    m.costsavings_constraint_pri = pyomo.Constraint(m.stf, rule=costsavings_rule_pri)
+    m.BD_limitation_constraint_pri = pyomo.Constraint(m.stf, rule=BD_limitation_rule_pri)
+    m.relation_pnew_to_pprior_constraint_pri = pyomo.Constraint(m.stf, rule=relation_pnew_to_pprior_pri)
+    m.q_perstep_constraint_pri = pyomo.Constraint(m.stf,rule=q_perstep_rule_pri)
+    m.upper_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_eq_pri)
+    m.upper_bound_z_q1_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_q1_eq_pri)
+    m.lower_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=lower_bound_z_eq_pri)
+    m.non_negativity_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=non_negativity_z_eq_pri)
 
+    #Eu_sec
+    m.costsavings_constraint_sec = pyomo.Constraint(m.stf, rule=costsavings_rule_sec)
+    m.BD_limitation_constraint_sec = pyomo.Constraint(m.stf, rule=BD_limitation_rule_sec)
+    m.relation_pnew_to_pprior_constraint_sec = pyomo.Constraint(m.stf, rule=relation_pnew_to_pprior_sec)
+    m.q_perstep_constraint_sec = pyomo.Constraint(m.stf,rule=q_perstep_rule_sec)
+    m.upper_bound_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=upper_bound_z_eq_sec)
+    m.upper_bound_z_q1_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=upper_bound_z_q1_eq_sec)
+    m.lower_bound_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=lower_bound_z_eq_sec)
+    m.non_negativity_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=non_negativity_z_eq_sec)
 
 
     # commodity constraints default
@@ -626,7 +678,7 @@ def res_vertex_rule(m,tm, stf, sit, com, com_type):
     if com == "Elec":
         power_surplus += m.balance_solar[stf]  # Adding total solar capacity in MWh
 
-        print(power_surplus)
+        #print(power_surplus)
     # if com is a stock commodity, the commodity source term e_co_stock
     # can supply a possibly negative power_surplus
     if com in m.com_stock:
@@ -646,7 +698,7 @@ def res_vertex_rule(m,tm, stf, sit, com, com_type):
 
             # Subtract demand from power surplus
             power_surplus -= demand_value
-            print(power_surplus)
+            #print(power_surplus)
         except KeyError:
             pass
 
@@ -755,7 +807,7 @@ def def_process_input_rule(m, tm, stf, sit, pro, com):
 # process output power = process throughput * output ratio
 def def_process_output_rule(m, tm, stf, sit, pro, com):
     ergebnis = m.tau_pro[tm, stf, sit, pro] * m.r_out_dict[(stf, pro, com)]
-    print(ergebnis)
+    #print(ergebnis)
     return m.e_pro_out[tm, stf, sit, pro, com] == ergebnis
 
 
@@ -773,7 +825,7 @@ def def_intermittent_supply_rule(m, tm, stf, sit, pro, coin):
 # process throughput <= process capacity
 def res_process_throughput_by_capacity_rule(m, tm, stf, sit, pro):
     result = m.dt * m.cap_pro[stf, sit, pro]
-    print(result)
+    #print(result)
     return (m.tau_pro[tm, stf, sit, pro] <= result)
 
 
@@ -1119,26 +1171,26 @@ def co2_rule(m):
 def def_costs_solar(m, cost_type_solar):
     if cost_type_solar == 'Importcost':
         total_import_cost = sum((m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf])) + (m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf] for stf in m.stf)
-        print("Calculating Import Cost Total:")
-        print(f"Total Import Cost = {total_import_cost}")
+        #print("Calculating Import Cost Total:")
+        #print(f"Total Import Cost = {total_import_cost}")
         return m.costs_solar[cost_type_solar] == total_import_cost
 
     elif cost_type_solar == 'Storagecost':
         total_storage_cost = sum(m.STORAGECOST * (m.capacity_solar_stock[stf]) for stf in m.stf)
-        print("Calculating Storage Cost Total:")
-        print(f"Total Storage Cost = {total_storage_cost}")
+        #print("Calculating Storage Cost Total:")
+        #print(f"Total Storage Cost = {total_storage_cost}")
         return m.costs_solar[cost_type_solar] == total_storage_cost
 
     elif cost_type_solar == 'Eu Cost Primary':
-        total_eu_cost_primary = sum(m.EU_primary_costs[stf] * (m.capacity_solar_euprimary[stf]) for stf in m.stf)
+        total_eu_cost_primary = sum(((m.EU_primary_costs[stf]-m.pricereduction_pri[stf]) * (m.capacity_solar_euprimary[stf])) for stf in m.stf)
         print("Calculating EU Primary Cost Total:")
         print(f"Total EU Primary Cost = {total_eu_cost_primary}")
         return m.costs_solar[cost_type_solar] == total_eu_cost_primary
 
     elif cost_type_solar == 'Eu Cost Secondary':
-        total_eu_cost_secondary = sum(m.EU_secondary_costs[stf] * (m.capacity_solar_eusecondary[stf]) for stf in m.stf)
-        print("Calculating EU Secondary Cost Total:")
-        print(f"Total EU Secondary Cost = {total_eu_cost_secondary}")
+        total_eu_cost_secondary = sum((m.EU_secondary_costs[stf]-m.pricereduction_sec[stf]) * (m.capacity_solar_eusecondary[stf]) for stf in m.stf)
+        #print("Calculating EU Secondary Cost Total:")
+        #print(f"Total EU Secondary Cost = {total_eu_cost_secondary}")
         return m.costs_solar[cost_type_solar] == total_eu_cost_secondary
 
     else:
@@ -1163,9 +1215,9 @@ def calculate_yearly_importcost(m,stf):
 def calculate_yearly_storagecost(m,stf):
     return m.costs_solar_storage[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
 def calculate_yearly_EU_primary(m,stf):
-    return m.costs_EU_primary[stf] == m.EU_primary_costs[stf] * m.capacity_solar_euprimary[stf]
+    return m.costs_EU_primary[stf] == (m.EU_primary_costs[stf]-m.pricereduction_pri[stf]) * m.capacity_solar_euprimary[stf]
 def calculate_yearly_EU_secondary(m,stf):
-    return m.costs_EU_secondary[stf] == m.EU_secondary_costs[stf] * m.capacity_solar_eusecondary[stf]
+    return m.costs_EU_secondary[stf] == (m.EU_secondary_costs[stf]-m.pricereduction_sec[stf]) * m.capacity_solar_eusecondary[stf]
 
 
 
@@ -1202,20 +1254,20 @@ def capacity_solar_stock_initial_rule(m, stf):
         return pyomo.Constraint.Skip
 
 #Constraint 6:
-def importcost_solar_rule(m, stf):
-    return m.importcost[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf]+ m.capacity_solar_stock_imported[stf])+ (m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf]
+#def importcost_solar_rule(m, stf):
+#    return m.importcost[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf]+ m.capacity_solar_stock_imported[stf])+ (m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf]
 
 #Constraint 7:
-def storagecost_solar_rule(m, stf):
-    return m.storagecost[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
+#def storagecost_solar_rule(m, stf):
+#    return m.storagecost[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
 
 #Constraint 8:
-def manufacturingcost_primary_solar_rule(m, stf):
-    return  m.costs_eu_primary[stf] == m.EU_primary_costs[stf] * m.capacity_solar_euprimary[stf]
+#def manufacturingcost_primary_solar_rule(m, stf):
+#    return  m.costs_eu_primary[stf] == (m.EU_primary_costs[stf]-m.pricereduction_pri[stf]) * m.capacity_solar_euprimary[stf]
 
 #Constraint 9:
-def manufacturingcost_secondary_solar_rule(m, stf):
-    return  m.costs_eu_secondary[stf] == m.EU_secondary_costs[stf] * m.capacity_solar_eusecondary[stf]
+#def manufacturingcost_secondary_solar_rule(m, stf):
+#    return  m.costs_eu_secondary[stf] == (m.EU_secondary_costs[stf]-m.pricereduction_pri[stf]) * m.capacity_solar_eusecondary[stf]
 
 
 
@@ -1243,7 +1295,7 @@ def capacity_solar_new_limit_rule(m, stf):
     solar_new_value = m.Q_Solar_new[stf]
 
     # Print values for debugging
-    print(f"Debug: STF = {stf}, Capacity Solar New = {capacity_value}, max instalable Capacity = {solar_new_value}")
+    #print(f"Debug: STF = {stf}, Capacity Solar New = {capacity_value}, max instalable Capacity = {solar_new_value}")
 
     # Return the constraint
     return capacity_value <= solar_new_value
@@ -1299,7 +1351,7 @@ def net_zero_industrialactbenchmark_rule_a(m, stf):
   return (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf] + m.capacity_solar_stockout[stf]-m.capacity_solar_stock_imported[stf]) >= (0.4 * m.capacity_solar_new[stf])
 
 def net_zero_industrialactbenchmark_rule_b(m, stf):
-  return  (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf]) >= (0.4 * m.capacity_solar_new[stf])
+  return   (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf]) >= (0.4 * m.capacity_solar_new[stf])
 
 #Addition made on 29th November:
 def best_estimate_TYNDP2030_rule(m, stf):
@@ -1316,3 +1368,138 @@ def max_intostock_rule(m, stf):
 
 def minimum_stock_level_rule(m,stf):
     return (m.min_stocklvl[stf]) <= (m.capacity_solar_stock[stf])
+
+
+########################################
+#       dynamic feedback loop          #     13. January 2025
+########################################
+
+#-------EU-Primary-------#
+
+#equation 1
+def costsavings_rule_pri(m, stf):
+    # Debug statement to check the components of the sum
+    print(f"costsavings_rule for stf={stf}:")
+    pricereduction_value_pri = sum(m.P_pri[n] * m.BD_pri[stf, n] for n in m.nsteps_pri)
+    print(f"Calculated pricereduction: {pricereduction_value_pri}")
+
+    return m.pricereduction_pri[stf] == pricereduction_value_pri
+# equation 2
+def BD_limitation_rule_pri(m, stf):
+    # Debug statement to print the sum of BD[stf, n]
+    bd_sum_value_pri = sum(m.BD_pri[stf, n] for n in m.nsteps_pri)
+    print(f"BD_limitation_rule for stf={stf}: Sum of BD is {bd_sum_value_pri}")
+
+    return bd_sum_value_pri == 1
+# equation 3
+def relation_pnew_to_pprior_pri(m, stf):
+    # Debug statement to print current price reduction values for stf and previous step
+    if stf == m.y0:
+        #print(f"relation_pnew_to_pprior: Skip for stf={stf} as it's the first time step (y0)")
+        return pyomo.Constraint.Skip
+    else:
+        #print(f"relation_pnew_to_pprior: Comparing pricereduction for stf={stf} and stf-1")
+        #print(
+            #f"pricereduction[{stf}] = {m.pricereduction_pri[stf]}, pricereduction[{stf - 1}] = {m.pricereduction_pri[stf - 1]}")
+        return m.pricereduction_pri[stf] >= m.pricereduction_pri[stf - 1]
+
+# equation 4
+def q_perstep_rule_pri(m, stf):
+    lhs_cumulative_sum = 0  # Reset LHS for each year
+    rhs_value = 0  # Reset RHS for each year
+
+    # Update cumulative sum for LHS (only for the current year)
+    for year in m.stf:
+        if year <= stf:  # Accumulate up to the current year (stf)
+            lhs_cumulative_sum += m.capacity_solar_euprimary[year]
+
+    # Calculate RHS based on selected stages (only for the current year)
+    rhs_value = sum(m.BD_pri[stf, n] * m.capacityperstep_pri[n] for n in m.nsteps_pri)
+
+    # Debug: Print LHS and selected RHS value for each year
+    print(f"Step {stf}: LHS cumulative sum = {lhs_cumulative_sum}, RHS value = {rhs_value}")
+
+    # Return the constraint for this specific year
+    return lhs_cumulative_sum >= rhs_value
+
+
+
+
+# equation 5: z <= gamma * BD
+def upper_bound_z_eq_pri(m, stf, nsteps_pri):
+
+    z = m.BD_pri[stf, nsteps_pri] * m.capacity_solar_euprimary[stf]
+    print("Z:",z)
+
+    return z <= m.gamma_pri * m.BD_pri[stf, nsteps_pri]
+# equation 6: z <= q1
+def upper_bound_z_q1_eq_pri(m, stf, nsteps_pri):
+    z = m.BD_pri[stf, nsteps_pri] * m.capacity_solar_euprimary[stf]
+    return z <= m.capacity_solar_euprimary[stf]
+# equation 7: z >= q1 - (1 - BD) * gamma
+def lower_bound_z_eq_pri(m, stf, nsteps_pri):
+    z = m.BD_pri[stf, nsteps_pri] * m.capacity_solar_euprimary[stf]
+    return z >= (m.capacity_solar_euprimary[stf] - (1 - m.BD_pri[stf, nsteps_pri]) * m.gamma_pri)
+# equation 8: z >= 0 (Non-negativity)
+def non_negativity_z_eq_pri(m, stf, nsteps_pri):
+    z = m.BD_pri[stf, nsteps_pri] * m.capacity_solar_euprimary[stf]
+    return z >= 0
+
+#-------EU-Secondary-------#
+#equation 1
+def costsavings_rule_sec(m, stf):
+    # Debug statement to check the components of the sum
+    print(f"costsavings_rule for stf={stf}:")
+    pricereduction_value_sec = sum(m.P_sec[n] * m.BD_sec[stf, n] for n in m.nsteps_sec)
+    print(f"Calculated pricereduction: {pricereduction_value_sec}")
+
+    return m.pricereduction_sec[stf] == pricereduction_value_sec
+# equation 2
+def BD_limitation_rule_sec(m, stf):
+    # Debug statement to print the sum of BD[stf, n]
+    bd_sum_value_sec = sum(m.BD_sec[stf, n] for n in m.nsteps_sec)
+    print(f"BD_limitation_rule for stf={stf}: Sum of BD is {bd_sum_value_sec}")
+
+    return bd_sum_value_sec <= 1
+# equation 3
+def relation_pnew_to_pprior_sec(m, stf):
+    # Debug statement to print current price reduction values for stf and previous step
+    if stf == m.y0:
+        print(f"relation_pnew_to_pprior: Skip for stf={stf} as it's the first time step (y0)")
+        return pyomo.Constraint.Skip
+    else:
+        print(f"relation_pnew_to_pprior: Comparing pricereduction for stf={stf} and stf-1")
+        print(
+            f"pricereduction[{stf}] = {m.pricereduction_sec[stf]}, pricereduction[{stf - 1}] = {m.pricereduction_sec[stf - 1]}")
+        return m.pricereduction_sec[stf] >= m.pricereduction_sec[stf - 1]
+# equation 4
+def q_perstep_rule_sec(m, stf):
+    lhs_cumulative_sum_sec = 0  # Reset LHS for each year
+    rhs_value_sec = 0  # Reset RHS for each year
+
+    # Update cumulative sum for LHS (only for the current year)
+    for year in m.stf:
+        if year <= stf:  # Accumulate up to the current year (stf)
+            lhs_cumulative_sum_sec += m.capacity_solar_eusecondary[year]
+
+    # Calculate RHS based on selected stages (only for the current year)
+    rhs_value_sec = sum(m.BD_sec[stf, n] * m.capacityperstep_sec[n] for n in m.nsteps_sec)
+
+    # Debug: Print LHS and selected RHS value for each year
+    print(f"Step {stf}: LHS cumulative sum = {lhs_cumulative_sum_sec}, RHS value = {rhs_value_sec}")
+
+    # Return the constraint for this specific year
+    return lhs_cumulative_sum_sec >= rhs_value_sec
+
+# equation 5: z <= gamma * BD
+def upper_bound_z_eq_sec(m, stf, nsteps_sec):
+    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf])  <= m.gamma_sec * m.BD_sec[stf, nsteps_sec]
+# equation 6: z <= q1
+def upper_bound_z_q1_eq_sec(m, stf, nsteps_sec):
+    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) <= m.capacity_solar_eusecondary[stf]
+# equation 7: z >= q1 - (1 - BD) * gamma
+def lower_bound_z_eq_sec(m, stf, nsteps_sec):
+    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) >= m.capacity_solar_eusecondary[stf] - (1 - m.BD_sec[stf, nsteps_sec]) * m.gamma_sec
+# equation 8: z >= 0 (Non-negativity)
+def non_negativity_z_eq_sec(m, stf, nsteps_sec):
+    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) >= 0

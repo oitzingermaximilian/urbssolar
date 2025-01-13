@@ -44,6 +44,21 @@ def get_constants(instance):
     # Handling of extra report df for better Display of Results and Plotting #
     #                                                                        #
     ##########################################################################
+####gather BD df to see if it works 13. january 2025
+    decisionvalues_pri = get_entity(instance, 'BD_pri')
+    print(decisionvalues_pri)
+    decisionvalues_sec = get_entity(instance, 'BD_sec')
+    #print(decisionvalues_sec)
+    price_reduction = get_entity(instance, 'pricereduction_pri')
+    print(price_reduction)
+    capacityprimary = get_entity(instance, 'capacity_solar_euprimary')
+    print(capacityprimary)
+    # Print the values of BD
+    #print("Decision variable values for BD:")
+    #for stf in m.stf:
+    #    for n in m.nsteps:
+    #        print(f"BD[{stf}, {n}] = {m.BD[stf, n].value}")
+
 
 ####Gather all relevant urbs-solar df's
 
@@ -62,7 +77,7 @@ def get_constants(instance):
     capacity_solar_total = get_entity(instance, 'capacity_solar')
 
     e_pro_out_df = get_entity(instance, 'e_pro_out')
-    print(e_pro_out_df)
+    #print(e_pro_out_df)
 
 #####Process df's to be used in report sheets
 
@@ -72,7 +87,7 @@ def get_constants(instance):
 
 ####us_balance
     e_pro_out_elec = {key: value for key, value in e_pro_out_df.items() if key[-1] == 'Elec'}
-    print(e_pro_out_elec)
+    #print(e_pro_out_elec)
     df_Elec = pd.DataFrame(list(e_pro_out_elec.items()), columns=['Index', 'Value'])
     df_Elec['Stf'] = df_Elec['Index'].apply(lambda x: int(x[1]))
     df_bsolar = pd.DataFrame(bsolar, columns=['balance_solar'])
@@ -208,7 +223,7 @@ def get_constants(instance):
     combined_costs_df = pd.concat([costs, solar_costs], ignore_index=False)
 
 
-    return costs, cpro, ctra, csto, csolar,combined_cpro_csolar,cost_df_combined,capacity_solar_total,df_co2,combined_balance
+    return costs, cpro, ctra, csto, csolar,combined_cpro_csolar,cost_df_combined,capacity_solar_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec
 
 
 def get_timeseries(instance, stf, com, sites, timesteps=None):

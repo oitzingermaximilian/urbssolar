@@ -20,12 +20,16 @@ def report(instance, filename, report_tuples=None, report_sites_name={}):
     if report_tuples is None:
         report_tuples = get_input(instance, 'demand').columns
 
-    costs, cpro, ctra, csto, csolar,combined_cpro_csolar,cost_df_combined,capacity_solar_total,df_co2,combined_balance = get_constants(instance)
+    costs, cpro, ctra, csto, csolar,combined_cpro_csolar,cost_df_combined,capacity_solar_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec = get_constants(instance)
 
     # create spreadsheet writer object
     with pd.ExcelWriter(filename) as writer:
 
         #################################################################################
+        #dynamic feedback loop reports
+        decisionvalues_pri.to_excel(writer, sheet_name='us_BDpri_values')
+        decisionvalues_sec.to_excel(writer, sheet_name='us_BDsec_values')
+
         #urbs-solar reports
         csolar.to_excel(writer, sheet_name='us_solarcaps')
         cost_df_combined.to_excel(writer, sheet_name='us_cost')
