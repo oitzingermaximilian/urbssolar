@@ -93,7 +93,7 @@ ax2.boxplot([category1_percentages, category2_percentages, category3_percentages
 
 # Customize labels and title
 ax2.set_xlabel("Learning Rate (in %)", fontsize=14)
-ax2.set_ylabel("Ratio to overall Capacity (%)", fontsize=14)
+ax2.set_ylabel("Ratio to overall Additions (%)", fontsize=14)
 
 # Set x-ticks to match categories
 ax2.set_xticks([1, 2, 3])
