@@ -149,20 +149,163 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
 
     # -------EU-Primary-------#
     #index set for n (=steps of linearization)
-    m.nsteps_pri = pyomo.Set(initialize=range(0, 5))
+    m.nsteps_pri = pyomo.Set(initialize=range(0, 7))
     #param def for price reduction
-    m.P_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 500, 2: 750, 3: 900, 4: 1000})
-    m.capacityperstep_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 20000, 2: 50000, 3: 150000, 4: 500000})
+    m.P_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 172444.8, 2: 246826.8
+        , 3: 279008.4, 4: 292974, 5: 299046, 6: 301656.96})
+    m.capacityperstep_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 100, 2: 1000, 3: 10000, 4: 100000, 5:1000000, 6:10000000})
     #param for gamma
     m.gamma_pri = pyomo.Param(initialize=1e10)
 
     # -------EU-Secondary-------#
     #index set for n (=steps of linearization)
-    m.nsteps_sec = pyomo.Set(initialize = range(0,5))
+    m.nsteps_sec = pyomo.Set(initialize = range(0,7))
     #param def for price reduction
-    m.P_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 750, 2: 1300, 3: 1700, 4: 2000})
+
+    #m.P_sec = pyomo.Param(m.nsteps_sec, initialize={
+    #    0: 0,
+    #    1: 13593.82044,
+    #    2: 26741.2835,
+    #    3: 39457.04547,
+    #    4: 51755.28139,
+    #    5: 63649.70086,
+    #    6: 75153.56332
+    #})
+    #2 LR 2%
+    #m.P_sec = pyomo.Param(m.nsteps_sec, initialize={
+    #    0: 0,
+    #    1: 26872.52452,
+    #    2: 52000.76746,
+    #    3: 75497.94923,
+    #    4: 97469.94116,
+    #    5: 118015.7425,
+    #    6: 137227.9266
+    #})
+
+    #3 LR 5%
+    #m.P_sec = pyomo.Param(m.nsteps_sec, initialize={
+      #  0: 0,
+        #1: 64859.87772,
+        #2: 119558.3938,
+        #3: 165687.4918,
+        #4: 204589.7114,
+        #5: 237397.2614,
+        #6: 265064.9716
+    #})
+
+    #4 LR 10%
+    #m.P_sec = pyomo.Param(m.nsteps_sec, initialize={
+    #    0: 0,
+    #    1: 122259.1475,
+    #    2: 208413.7077,
+    #    3: 269125.7967,
+    #    4: 311908.8802,
+    #    5: 342057.6079,
+    #    6: 363303.0561
+    #})
+
+    #5 LR 25%
+    #m.P_sec = pyomo.Param(m.nsteps_sec, initialize={
+    #    0: 0,
+    #    1: 254792.7496,
+    #    2: 352775.4865,
+    #    3: 390455.5883,
+    #    4: 404945.7946,
+    #    5: 410518.1277,
+    #    6: 412661.0161
+    #})
+
+    variation_6 = {
+        0: 0,
+        1: 33395.02122,
+        2: 64096.25634,
+        3: 92320.99775,
+        4: 118269.0101,
+        5: 142123.9441,
+        6: 164054.6365
+    }
+
+    variation_7 = {
+        0: 0,
+        1: 39840.31305,
+        2: 75846.68759,
+        3: 108388.0736,
+        4: 137797.9162,
+        5: 164377.572,
+        6: 188399.3973
+    }
+
+    variation_8 = {
+        0: 0,
+        1: 46208.92298,
+        2: 87260.20208,
+        3: 123729.5116,
+        4: 156128.2716,
+        5: 184910.8195,
+        6: 210480.7816
+    }
+
+    variation_9 = {
+        0: 0,
+        1: 52501.37307,
+        2: 98344.78919,
+        3: 138374.5766,
+        4: 173327.9901,
+        5: 203848.7895,
+        6: 230499.0966
+    }
+
+    variation_10 = {
+        0: 0,
+        1: 58718.18454,
+        2: 109108.2889,
+        3: 152351.496,
+        4: 189461.4601,
+        5: 221308.0674,
+        6: 248637.827
+    }
+
+    variation_11 = {
+        0: 0,
+        1: 49364.63541,
+        2: 92843.11808,
+        3: 131137.3026,
+        4: 164865.3556,
+        5: 194571.7345,
+        6: 220735.9768
+    }
+    variation_12 = {
+        0: 0,
+        1: 47473.48909,
+        2: 89503.18068,
+        3: 126713.3165,
+        4: 159656.5562,
+        5: 188822.1859,
+        6: 214643.3852
+    }
+
+    variation_13 = {
+        0: 0,
+        1: 48735.01299,
+        2: 91733.06585,
+        3: 129669.4987,
+        4: 163140.1525,
+        5: 192670.7272,
+        6: 218725.0388
+    }
+    variation_14 = {
+        0: 0,
+        1: 46841.69972,
+        2: 88383.54549,
+        3: 125225.1836,
+        4: 157898.4141,
+        5: 186874.8668,
+        6: 212572.8099
+    }
+
+    m.P_sec = pyomo.Param(m.nsteps_sec, initialize=variation_14)
     #param def for Capacity needed to reach next step
-    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 20000, 2: 35000, 3: 50000, 4: 100000})
+    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 100, 2: 1000, 3: 10000, 4: 100000, 5:1000000, 6:10000000})
     #param for gamma
     m.gamma_sec = pyomo.Param(initialize=1e10)
 
@@ -471,9 +614,9 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
 
 
     #Constraints for Scenarios ENABLE IF NEEDED
-    #m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
-    #m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_a)
-    m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
+    m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
+    m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_a)
+    #m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
     #m.best_estimate_TYNDP2030 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2030_rule)
     #m.best_estimate_TYNDP2040 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2040_rule)
     #m.best_estimate_TYNDP2050 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2050_rule)
@@ -481,14 +624,14 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
 
     #constraints dynamic feedback loop
     #Eu_pri
-    m.costsavings_constraint_pri = pyomo.Constraint(m.stf, rule=costsavings_rule_pri)
-    m.BD_limitation_constraint_pri = pyomo.Constraint(m.stf, rule=BD_limitation_rule_pri)
-    m.relation_pnew_to_pprior_constraint_pri = pyomo.Constraint(m.stf, rule=relation_pnew_to_pprior_pri)
-    m.q_perstep_constraint_pri = pyomo.Constraint(m.stf,rule=q_perstep_rule_pri)
-    m.upper_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_eq_pri)
-    m.upper_bound_z_q1_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_q1_eq_pri)
-    m.lower_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=lower_bound_z_eq_pri)
-    m.non_negativity_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=non_negativity_z_eq_pri)
+    #m.costsavings_constraint_pri = pyomo.Constraint(m.stf, rule=costsavings_rule_pri)
+    #m.BD_limitation_constraint_pri = pyomo.Constraint(m.stf, rule=BD_limitation_rule_pri)
+    #m.relation_pnew_to_pprior_constraint_pri = pyomo.Constraint(m.stf, rule=relation_pnew_to_pprior_pri)
+    #m.q_perstep_constraint_pri = pyomo.Constraint(m.stf,rule=q_perstep_rule_pri)
+    #m.upper_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_eq_pri)
+    #m.upper_bound_z_q1_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=upper_bound_z_q1_eq_pri)
+    #m.lower_bound_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=lower_bound_z_eq_pri)
+    #m.non_negativity_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=non_negativity_z_eq_pri)
 
     #Eu_sec
     m.costsavings_constraint_sec = pyomo.Constraint(m.stf, rule=costsavings_rule_sec)
@@ -1182,7 +1325,7 @@ def def_costs_solar(m, cost_type_solar):
         return m.costs_solar[cost_type_solar] == total_storage_cost
 
     elif cost_type_solar == 'Eu Cost Primary':
-        total_eu_cost_primary = sum(((m.EU_primary_costs[stf]-m.pricereduction_pri[stf]) * (m.capacity_solar_euprimary[stf])) for stf in m.stf)
+        total_eu_cost_primary = sum(((m.EU_primary_costs[stf]) * (m.capacity_solar_euprimary[stf])) for stf in m.stf)
         print("Calculating EU Primary Cost Total:")
         print(f"Total EU Primary Cost = {total_eu_cost_primary}")
         return m.costs_solar[cost_type_solar] == total_eu_cost_primary
@@ -1215,7 +1358,7 @@ def calculate_yearly_importcost(m,stf):
 def calculate_yearly_storagecost(m,stf):
     return m.costs_solar_storage[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
 def calculate_yearly_EU_primary(m,stf):
-    return m.costs_EU_primary[stf] == (m.EU_primary_costs[stf]-m.pricereduction_pri[stf]) * m.capacity_solar_euprimary[stf]
+    return m.costs_EU_primary[stf] == (m.EU_primary_costs[stf]) * m.capacity_solar_euprimary[stf]
 def calculate_yearly_EU_secondary(m,stf):
     return m.costs_EU_secondary[stf] == (m.EU_secondary_costs[stf]-m.pricereduction_sec[stf]) * m.capacity_solar_eusecondary[stf]
 
@@ -1276,9 +1419,10 @@ def stock_turnover_rule(m, stf):
     valid_years = [2025, 2030, 2035, 2040, 2045]
     if stf in valid_years:
         lhs = sum(m.capacity_solar_stockout[j] for j in range(stf , stf + m.n) if j in m.capacity_solar_stockout)
+        print("LHS",lhs)
         rhs = m.FT * (1 / m.n) * sum(
             m.capacity_solar_stock[j] for j in range(stf, stf + m.n) if j in m.capacity_solar_stock)
-
+        print("RHS",rhs)
         return lhs >= rhs
     else:
         return pyomo.Constraint.Skip
@@ -1379,16 +1523,16 @@ def minimum_stock_level_rule(m,stf):
 #equation 1
 def costsavings_rule_pri(m, stf):
     # Debug statement to check the components of the sum
-    print(f"costsavings_rule for stf={stf}:")
+    #print(f"costsavings_rule for stf={stf}:")
     pricereduction_value_pri = sum(m.P_pri[n] * m.BD_pri[stf, n] for n in m.nsteps_pri)
-    print(f"Calculated pricereduction: {pricereduction_value_pri}")
+    #print(f"Calculated pricereduction: {pricereduction_value_pri}")
 
     return m.pricereduction_pri[stf] == pricereduction_value_pri
 # equation 2
 def BD_limitation_rule_pri(m, stf):
     # Debug statement to print the sum of BD[stf, n]
     bd_sum_value_pri = sum(m.BD_pri[stf, n] for n in m.nsteps_pri)
-    print(f"BD_limitation_rule for stf={stf}: Sum of BD is {bd_sum_value_pri}")
+    #print(f"BD_limitation_rule for stf={stf}: Sum of BD is {bd_sum_value_pri}")
 
     return bd_sum_value_pri == 1
 # equation 3
@@ -1417,19 +1561,16 @@ def q_perstep_rule_pri(m, stf):
     rhs_value = sum(m.BD_pri[stf, n] * m.capacityperstep_pri[n] for n in m.nsteps_pri)
 
     # Debug: Print LHS and selected RHS value for each year
-    print(f"Step {stf}: LHS cumulative sum = {lhs_cumulative_sum}, RHS value = {rhs_value}")
+    #print(f"Step {stf}: LHS cumulative sum = {lhs_cumulative_sum}, RHS value = {rhs_value}")
 
     # Return the constraint for this specific year
     return lhs_cumulative_sum >= rhs_value
-
-
-
 
 # equation 5: z <= gamma * BD
 def upper_bound_z_eq_pri(m, stf, nsteps_pri):
 
     z = m.BD_pri[stf, nsteps_pri] * m.capacity_solar_euprimary[stf]
-    print("Z:",z)
+    #print("Z:",z)
 
     return z <= m.gamma_pri * m.BD_pri[stf, nsteps_pri]
 # equation 6: z <= q1
@@ -1449,7 +1590,7 @@ def non_negativity_z_eq_pri(m, stf, nsteps_pri):
 #equation 1
 def costsavings_rule_sec(m, stf):
     # Debug statement to check the components of the sum
-    print(f"costsavings_rule for stf={stf}:")
+    #print(f"costsavings_rule for stf={stf}:")
     pricereduction_value_sec = sum(m.P_sec[n] * m.BD_sec[stf, n] for n in m.nsteps_sec)
     print(f"Calculated pricereduction: {pricereduction_value_sec}")
 
@@ -1465,12 +1606,12 @@ def BD_limitation_rule_sec(m, stf):
 def relation_pnew_to_pprior_sec(m, stf):
     # Debug statement to print current price reduction values for stf and previous step
     if stf == m.y0:
-        print(f"relation_pnew_to_pprior: Skip for stf={stf} as it's the first time step (y0)")
+        #print(f"relation_pnew_to_pprior: Skip for stf={stf} as it's the first time step (y0)")
         return pyomo.Constraint.Skip
     else:
-        print(f"relation_pnew_to_pprior: Comparing pricereduction for stf={stf} and stf-1")
-        print(
-            f"pricereduction[{stf}] = {m.pricereduction_sec[stf]}, pricereduction[{stf - 1}] = {m.pricereduction_sec[stf - 1]}")
+        #print(f"relation_pnew_to_pprior: Comparing pricereduction for stf={stf} and stf-1")
+        #print(
+            #f"pricereduction[{stf}] = {m.pricereduction_sec[stf]}, pricereduction[{stf - 1}] = {m.pricereduction_sec[stf - 1]}")
         return m.pricereduction_sec[stf] >= m.pricereduction_sec[stf - 1]
 # equation 4
 def q_perstep_rule_sec(m, stf):

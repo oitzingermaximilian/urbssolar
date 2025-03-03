@@ -1065,3 +1065,53 @@ def scenario_40(data,param_dict,importcost_dict, instalable_capacity_dict, eu_pr
 def scenario_base_minstock(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
     # do nothing
     return data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict,stocklvl_dict
+
+
+def scenario_eem_1(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR1')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_2(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR2')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_3(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR3')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_4(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR4')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_5(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR5')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_6(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR6')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_7(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR7')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_8(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR8')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_9(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR9')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_10(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR10')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+
+def scenario_eem_11(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR11')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_12(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR12')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_13(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR13')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict
+def scenario_eem_14(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
+    print('Running NZIA flex + TO for LR14')
+    return data, param_dict, importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict, dcr_dict, stocklvl_dict

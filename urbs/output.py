@@ -46,13 +46,13 @@ def get_constants(instance):
     ##########################################################################
 ####gather BD df to see if it works 13. january 2025
     decisionvalues_pri = get_entity(instance, 'BD_pri')
-    print(decisionvalues_pri)
+    #print(decisionvalues_pri)
     decisionvalues_sec = get_entity(instance, 'BD_sec')
     #print(decisionvalues_sec)
     price_reduction = get_entity(instance, 'pricereduction_pri')
-    print(price_reduction)
+    #print(price_reduction)
     capacityprimary = get_entity(instance, 'capacity_solar_euprimary')
-    print(capacityprimary)
+    #print(capacityprimary)
     # Print the values of BD
     #print("Decision variable values for BD:")
     #for stf in m.stf:
