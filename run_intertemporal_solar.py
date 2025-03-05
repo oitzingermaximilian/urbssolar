@@ -58,7 +58,8 @@ for country, color in my_colors.items():
 
 # select scenarios to be run
 scenarios = [
-    urbs.scenario_base_minstock
+    urbs.scenario_base
+    #urbs.scenario_base_minstock,
     #urbs.scenario_1,
     #urbs.scenario_2,
     #urbs.scenario_3,
