@@ -51,7 +51,7 @@ def get_constants(instance):
     #print(decisionvalues_sec)
     price_reduction = get_entity(instance, 'pricereduction_pri')
     #print(price_reduction)
-    capacityprimary = get_entity(instance, 'capacity_solar_euprimary')
+    capacityprimary = get_entity(instance, 'capacity_ext_euprimary')
     #print(capacityprimary)
     # Print the values of BD
     #print("Decision variable values for BD:")
@@ -60,21 +60,21 @@ def get_constants(instance):
     #        print(f"BD[{stf}, {n}] = {m.BD[stf, n].value}")
 
 
-####Gather all relevant urbs-solar df's
+####Gather all relevant urbs-ext df's
 
     process_cost = get_entity(instance, 'process_costs')
 
-    solar_costs = get_entity(instance,'costs_solar')
+    ext_costs = get_entity(instance,'costs_new')
 
-    csolar = get_entities(instance, ['capacity_solar_imported', 'capacity_solar_stockout',
-                                     'capacity_solar_euprimary', 'capacity_solar_eusecondary',
-                                     'capacity_solar_stock','capacity_solar_stock_imported'])
+    cext = get_entities(instance, ['capacity_ext_imported', 'capacity_ext_stockout',
+                                     'capacity_ext_euprimary', 'capacity_ext_eusecondary',
+                                     'capacity_ext_stock','capacity_ext_stock_imported'])
 
-    bsolar = get_entity(instance, 'balance_solar')
+    bext = get_entity(instance, 'balance_ext')
 
-    yearly_cost_solar = get_entities(instance, ['costs_solar_import', 'costs_solar_storage',
+    yearly_cost_ext = get_entities(instance, ['costs_ext_import', 'costs_ext_storage',
                                      'costs_EU_primary', 'costs_EU_secondary'])
-    capacity_solar_total = get_entity(instance, 'capacity_solar')
+    capacity_ext_total = get_entity(instance, 'capacity_ext')
 
     e_pro_out_df = get_entity(instance, 'e_pro_out')
     #print(e_pro_out_df)
@@ -90,14 +90,14 @@ def get_constants(instance):
     #print(e_pro_out_elec)
     df_Elec = pd.DataFrame(list(e_pro_out_elec.items()), columns=['Index', 'Value'])
     df_Elec['Stf'] = df_Elec['Index'].apply(lambda x: int(x[1]))
-    df_bsolar = pd.DataFrame(bsolar, columns=['balance_solar'])
-    df_bsolar['Index'] = range(2024, 2051)
-    solar_process = pd.DataFrame({
-        'Index': [(1,float(year),'EU27', 'Solar', 'Elec') for year in df_bsolar['Index']],
-        'Value': df_bsolar['balance_solar'],
-        'Stf': df_bsolar['Index']
+    df_bext = pd.DataFrame(bext, columns=['balance_ext'])
+    df_bext['Index'] = range(2024, 2051)
+    ext_process = pd.DataFrame({
+        'Index': [(1,float(year),'EU27', 'solarPV', 'Elec') for year in df_bext['Index']],
+        'Value': df_bext['balance_ext'],
+        'Stf': df_bext['Index']
     })
-    combined_balance = pd.concat([df_Elec, solar_process], ignore_index=True)
+    combined_balance = pd.concat([df_Elec, ext_process], ignore_index=True)
     combined_balance = combined_balance.sort_values(by='Stf').reset_index(drop=True)
     combined_balance[['tm', 'Year', 'Site', 'Process', 'Type']] = pd.DataFrame(combined_balance['Index'].tolist(),
                                                                                  index=combined_balance.index)
@@ -111,21 +111,21 @@ def get_constants(instance):
     df_process_summed = df_process_reset[df_process_reset['cost_type'].isin(cost_types_to_sum)].groupby(
         ['stf', 'pro'])['process_costs'].sum().reset_index()
     df_process_summed.rename(columns={'process_costs': 'Total_Cost'}, inplace=True)
-    df_solar_melted = yearly_cost_solar.reset_index().melt(id_vars='stf',
+    df_ext_melted = yearly_cost_ext.reset_index().melt(id_vars='stf',
                                                   var_name='pro',
                                                   value_name='Total_Cost')
-    cost_df_combined = pd.concat([df_process_summed, df_solar_melted], ignore_index=True)
+    cost_df_combined = pd.concat([df_process_summed, df_ext_melted], ignore_index=True)
     cost_df_combined = round(cost_df_combined.groupby(['stf', 'pro'])['Total_Cost'].sum().reset_index(),2)
 
 ####us_capacity
     # Resetting the index for processing
-    csolar.reset_index(inplace=True)
+    cext.reset_index(inplace=True)
 
     # Melting the DataFrame
-    long_csolar = csolar.melt(id_vars='stf', var_name='pro', value_name='New')
+    long_cext = cext.melt(id_vars='stf', var_name='pro', value_name='New')
 
     # Grouping by year and process type
-    capacity_sum = long_csolar.groupby(['stf', 'pro'])['New'].sum().reset_index()
+    capacity_sum = long_cext.groupby(['stf', 'pro'])['New'].sum().reset_index()
 
     # Initialize Total
     capacity_sum['Total'] = 0
@@ -145,33 +145,33 @@ def get_constants(instance):
         capacity_sum.at[i, 'Total'] = total_capacity
 
     # Calculate Solar Stock
-    # Assuming you have these columns in csolar DataFrame
+    # Assuming you have these columns in cext DataFrame
     # Initialize the Solar Stock calculation with the given value for year 0
     initial_capacity = 40000  # Initial stock for year 0
 
     # Create a DataFrame for Solar Stock
-    solar_stock_data = []
+    ext_stock_data = []
 
-    for year in csolar['stf'].unique():
+    for year in cext['stf'].unique():
         if year == 2024:
-            solar_stock = initial_capacity+csolar[csolar['stf'] == year]['capacity_solar_stock_imported'].sum() - csolar[csolar['stf'] == year]['capacity_solar_stockout'].sum()
+            ext_stock = initial_capacity+cext[cext['stf'] == year]['capacity_ext_stock_imported'].sum() - cext[cext['stf'] == year]['capacity_ext_stockout'].sum()
         else:
-            solar_stock = csolar[csolar['stf'] == year]['capacity_solar_stock_imported'].sum() - \
-                          csolar[csolar['stf'] == year]['capacity_solar_stockout'].sum()
+            ext_stock = cext[cext['stf'] == year]['capacity_ext_stock_imported'].sum() - \
+                          cext[cext['stf'] == year]['capacity_ext_stockout'].sum()
 
-        solar_stock_data.append({'stf': year, 'pro': 'Solar Stock', 'New': solar_stock})
+        ext_stock_data.append({'stf': year, 'pro': 'ext Stock', 'New': ext_stock})
 
     # Convert to DataFrame
-    solar_stock_df = pd.DataFrame(solar_stock_data)
+    ext_stock_df = pd.DataFrame(ext_stock_data)
 
     # Calculate the Total for Solar Stock
-    solar_stock_df['Total'] = solar_stock_df['New'].cumsum()  # Cumulative sum to get Total for Solar Stock
+    ext_stock_df['Total'] = ext_stock_df['New'].cumsum()  # Cumulative sum to get Total for Solar Stock
 
     # Combine Solar Stock Data with Capacity Sum
-    capacity_sum = pd.concat([capacity_sum, solar_stock_df], ignore_index=True)
+    capacity_sum = pd.concat([capacity_sum, ext_stock_df], ignore_index=True)
 
     # Filter out unwanted processes
-    processes_to_remove = ['capacity_solar_stock_imported', 'capacity_solar_stock']
+    processes_to_remove = ['capacity_ext_stock_imported', 'capacity_ext_stock']
     capacity_sum = capacity_sum[~capacity_sum['pro'].isin(processes_to_remove)]
 
     # Create a final index and DataFrame
@@ -181,15 +181,15 @@ def get_constants(instance):
     )
 
     # Creating the final DataFrame
-    final_solar_df = pd.DataFrame({
+    final_ext_df = pd.DataFrame({
         'Total': capacity_sum['Total'].values,
         'New': capacity_sum['New'].values
     }, index=final_index)
 
     # Setting float levels for index
-    final_solar_df.index = final_solar_df.index.set_levels([float(i) for i in final_solar_df.index.levels[0]], level=0)
+    final_ext_df.index = final_ext_df.index.set_levels([float(i) for i in final_ext_df.index.levels[0]], level=0)
 
-    # Final output excludes 'capacity_solar_stock_imported' and 'capacity_solar_stock'
+    # Final output excludes 'capacity_ext_stock_imported' and 'capacity_ext_stock'
 
     # Final output includes the new 'Solar Stock' process
 
@@ -198,7 +198,7 @@ def get_constants(instance):
         cpro.index.names = ['Stf', 'Site', 'Process']
         cpro.columns = ['Total', 'New']
         cpro.sort_index(inplace=True)
-    final_cpro = pd.concat([cpro.reset_index(), final_solar_df.reset_index().drop(columns='Site')], ignore_index=True)
+    final_cpro = pd.concat([cpro.reset_index(), final_ext_df.reset_index().drop(columns='Site')], ignore_index=True)
     final_cpro.set_index(['Stf', 'Site', 'Process'], inplace=True)
 ########################################################################################################################
 
@@ -215,15 +215,15 @@ def get_constants(instance):
 
 #### Process df's to be used in report sheets
 
-    combined_cpro_csolar = pd.concat([final_cpro, final_solar_df])
-    combined_cpro_csolar = round(combined_cpro_csolar.groupby(level=['Stf', 'Site', 'Process']).sum(),2)
+    combined_cpro_cext = pd.concat([final_cpro, final_ext_df])
+    combined_cpro_cext = round(combined_cpro_cext.groupby(level=['Stf', 'Site', 'Process']).sum(),2)
 
 
-    solar_costs = solar_costs.rename('costs')
-    combined_costs_df = pd.concat([costs, solar_costs], ignore_index=False)
+    ext_costs = ext_costs.rename('costs')
+    combined_costs_df = pd.concat([costs, ext_costs], ignore_index=False)
 
 
-    return costs, cpro, ctra, csto, csolar,combined_cpro_csolar,cost_df_combined,capacity_solar_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec
+    return costs, cpro, ctra, csto, cext,combined_cpro_cext,cost_df_combined,capacity_ext_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec
 
 
 def get_timeseries(instance, stf, com, sites, timesteps=None):
