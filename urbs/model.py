@@ -160,22 +160,36 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
     m.hours_year = pyomo.Param(initialize=base_params["hours"])  # Hours per year
     # locations sheet read in
     m.location = pyomo.Set(initialize=data_urbsextensionv1["locations_list"])  # Spatial Resolution
-    #Technologie sheet read in ToDo extend for location as well!!!
-    m.tech = pyomo.Set(initialize=data_urbsextensionv1["technologies"].keys()) #Technologies
-    m.n = pyomo.Param(m.tech, initialize={t: data_urbsextensionv1["technologies"][t]['n turnover stockpile'] for t in m.tech}) #turnover of stockpile
-    m.l = pyomo.Param(m.tech, initialize={t: data_urbsextensionv1["technologies"][t]["l"] for t in m.tech})
-    m.Installed_Capacity_Q_s = pyomo.Param( m.tech,initialize={t: data_urbsextensionv1["technologies"][t]["InitialCapacity"] for t in m.tech})  # Initial installed capacity MW
-    m.Existing_Stock_Q_stock = pyomo.Param(m.tech, initialize={t: data_urbsextensionv1["technologies"][t]["InitialStockpile"]  for t in m.tech}) # Initial stocked capacity
-    m.FT = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['FT'] for t in m.tech})  # Factor
-    m.anti_dumping_index = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['anti duping Index'] for t in m.tech})  # Anti-dumping index
-    m.deltaQ_EUprimary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['dQ EU Primary'] for t in m.tech})  # ΔQ EU Primary
-    m.deltaQ_EUsecondary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['dQ EU Secondary'] for t in m.tech})  # ΔQ EU Secondary
-    m.IR_EU_primary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['IR EU Primary'] for t in m.tech})  # IR EU Primary
-    m.IR_EU_secondary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['IR EU Secondary'] for t in m.tech})  # IR EU Secondary
-    m.DR_primary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['DR Primary'] for t in m.tech})  # DR Primary
-    m.DR_secondary = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['DR Secondary'] for t in m.tech})  # DR Secondary
-    m.STORAGECOST = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['Storagecost'] for t in m.tech})
-    m.logisticcost = pyomo.Param(m.tech,initialize={t: data_urbsextensionv1["technologies"][t]['logisticcost'] for t in m.tech}) #to avoid instant storage takeout ToDo make universal
+
+    # Extract all unique technologies across all locations
+    all_techs = set()
+    for loc in data_urbsextensionv1["technologies"]:
+        all_techs.update(data_urbsextensionv1["technologies"][loc].keys())
+
+    # Define the technology set
+    m.tech = pyomo.Set(initialize=all_techs)
+    #
+    # Helper function to initialize parameters with default values
+    def initialize_param(param_name, default_value=0):
+        return {(loc, t): data_urbsextensionv1["technologies"].get(loc, {}).get(t, {}).get(param_name, default_value)
+                for loc in m.location for t in m.tech}
+
+    # Define parameters using the helper function
+    m.n = pyomo.Param(m.location, m.tech,initialize=initialize_param('n turnover stockpile', default_value=0))  # Turnover of stockpile
+    m.l = pyomo.Param(m.location, m.tech, initialize=initialize_param('l', default_value=0))
+    m.Installed_Capacity_Q_s = pyomo.Param(m.location, m.tech, initialize=initialize_param('InitialCapacity',default_value=0))  # Initial installed capacity MW
+    m.Existing_Stock_Q_stock = pyomo.Param(m.location, m.tech, initialize=initialize_param('InitialStockpile',default_value=0))  # Initial stocked capacity
+    m.FT = pyomo.Param(m.location, m.tech, initialize=initialize_param('FT', default_value=0))  # Factor
+    m.anti_dumping_index = pyomo.Param(m.location, m.tech, initialize=initialize_param('anti duping Index',default_value=0))  # Anti-dumping index
+    m.deltaQ_EUprimary = pyomo.Param(m.location, m.tech,initialize=initialize_param('dQ EU Primary', default_value=0))  # ΔQ EU Primary
+    m.deltaQ_EUsecondary = pyomo.Param(m.location, m.tech, initialize=initialize_param('dQ EU Secondary',default_value=0))  # ΔQ EU Secondary
+    m.IR_EU_primary = pyomo.Param(m.location, m.tech,initialize=initialize_param('IR EU Primary', default_value=0))  # IR EU Primary
+    m.IR_EU_secondary = pyomo.Param(m.location, m.tech,initialize=initialize_param('IR EU Secondary', default_value=0))  # IR EU Secondary
+    m.DR_primary = pyomo.Param(m.location, m.tech,initialize=initialize_param('DR Primary', default_value=0))  # DR Primary
+    m.DR_secondary = pyomo.Param(m.location, m.tech,initialize=initialize_param('DR Secondary', default_value=0))  # DR Secondary
+    m.STORAGECOST = pyomo.Param(m.location, m.tech, initialize=initialize_param('Storagecost', default_value=0))
+    m.logisticcost = pyomo.Param(m.location, m.tech, initialize=initialize_param('logisticcost', default_value=0))
+
     #cost sheet read in
     m.IMPORTCOST = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["importcost_dict"])
     m.EU_primary_costs = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["manufacturingcost_dict"])
@@ -865,11 +879,11 @@ def res_vertex_rule(m,tm, stf, sit, com, com_type):
 
     # Add extra modelled capacity contribution to power surplus
     if com == "Elec":
-        # Access location and tech from the current context
-        # Assuming the model is applied over certain indices (e.g., `m.location` and `m.tech`)
-        for loc in m.location:
-            for tech in m.tech:
-                power_surplus += m.balance_ext[stf, loc, tech]  # Now we can loop over location and tech
+        # Only add balance_ext where sit matches the location
+        for tech in m.tech:
+            for loc in m.location:
+                if loc == sit:  # Ensure we only sum for the correct site
+                    power_surplus += m.balance_ext[stf, loc, tech]
 
     print(power_surplus)
     # if com is a stock commodity, the commodity source term e_co_stock
@@ -1367,7 +1381,7 @@ def def_costs_new(m, cost_type_new):
         total_import_cost = sum(
             (m.IMPORTCOST[stf,site,tech] * (
                         m.capacity_ext_imported[stf, site, tech] + m.capacity_ext_stock_imported[stf, site, tech])) +
-            (m.capacity_ext_stock_imported[stf, site, tech] * m.logisticcost[tech]) +
+            (m.capacity_ext_stock_imported[stf, site, tech] * m.logisticcost[site, tech]) +
             m.anti_dumping_measures[stf, site, tech]
             for stf in m.stf
             for site in m.location
@@ -1381,7 +1395,7 @@ def def_costs_new(m, cost_type_new):
     elif cost_type_new == 'Storagecost':
         # Calculating total storage cost across all time steps and locations/technologies if needed
         total_storage_cost = sum(
-            m.STORAGECOST[tech] * m.capacity_ext_stock[stf, site, tech]
+            m.STORAGECOST[site, tech] * m.capacity_ext_stock[stf, site, tech]
             for stf in m.stf
             for site in m.location
             for tech in m.tech
@@ -1456,13 +1470,13 @@ def convert_capacity_4_rule(m, stf, location, tech): #ToDo change lf_solar to un
 
 # Calculate yearly Solar Costs only for excel output
 def calculate_yearly_importcost(m, stf, location, tech):
-    import_cost_value = m.IMPORTCOST[stf,location,tech] * (m.capacity_ext_imported[stf, location, tech] + m.capacity_ext_stock_imported[stf, location, tech]) + (m.capacity_ext_stock_imported[stf, location, tech] * m.logisticcost[tech]) + m.anti_dumping_measures[stf, location, tech]
+    import_cost_value = m.IMPORTCOST[stf,location,tech] * (m.capacity_ext_imported[stf, location, tech] + m.capacity_ext_stock_imported[stf, location, tech]) + (m.capacity_ext_stock_imported[stf, location, tech] * m.logisticcost[location, tech]) + m.anti_dumping_measures[stf, location, tech]
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Yearly Import Cost = {import_cost_value}")
     return m.costs_ext_import[stf, location, tech] == import_cost_value
 
 def calculate_yearly_storagecost(m, stf, location, tech):
-    storage_cost_value = m.STORAGECOST[tech] * m.capacity_ext_stock[stf, location, tech]
+    storage_cost_value = m.STORAGECOST[location, tech] * m.capacity_ext_stock[stf, location, tech]
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Yearly Storage Cost = {storage_cost_value}")
     return m.costs_ext_storage[stf, location, tech] == storage_cost_value
@@ -1494,9 +1508,9 @@ def capacity_ext_growth_rule(m, stf, location, tech):
 
 def initial_capacity_rule(m, stf, location, tech):
     if stf == m.y0:
-        capacity_eq1 = m.capacity_ext[stf, location, tech] == m.Installed_Capacity_Q_s[tech] + m.capacity_ext_new[stf, location, tech]
+        capacity_eq1 = m.capacity_ext[stf, location, tech] == m.Installed_Capacity_Q_s[location, tech] + m.capacity_ext_new[stf, location, tech]
         print(f"Initial Capacity for {tech} at {location} in year {stf}: {m.capacity_ext[stf, location, tech]} = "
-              f"{m.Installed_Capacity_Q_s[tech]} + {m.capacity_ext_new[stf, location, tech]}")
+              f"{m.Installed_Capacity_Q_s[location, tech]} + {m.capacity_ext_new[stf, location, tech]}")
         return capacity_eq1
     else:
         return pyomo.Constraint.Skip
@@ -1533,12 +1547,12 @@ def capacity_ext_stock_rule(m, stf, location, tech):
 #Constraint 5:
 def capacity_ext_stock_initial_rule(m, stf, location, tech):
     if stf == m.y0:
-        capacity_eq4 = m.capacity_ext_stock[stf, location, tech] == (m.Existing_Stock_Q_stock[tech] +
+        capacity_eq4 = m.capacity_ext_stock[stf, location, tech] == (m.Existing_Stock_Q_stock[location, tech] +
                                                                       m.capacity_ext_stock_imported[stf, location, tech] -
                                                                       m.capacity_ext_stockout[stf, location, tech])
         print(f"Capacity Extension Stock Initial for {tech} at {location} in year {stf}: "
               f"{m.capacity_ext_stock[stf, location, tech]} = "
-              f"{m.Existing_Stock_Q_stock[tech]} + "
+              f"{m.Existing_Stock_Q_stock[location, tech]} + "
               f"{m.capacity_ext_stock_imported[stf, location, tech]} - "
               f"{m.capacity_ext_stockout[stf, location, tech]}")
         return capacity_eq4
@@ -1588,12 +1602,12 @@ def stock_turnover_rule(m, stf, location, tech):
 #Constraint 12:
 def anti_dumping_measures_rule(m, stf, location, tech):
     # Calculate the right-hand side for anti-dumping measures with location and tech indices
-    rhs = m.anti_dumping_index[tech] * (
+    rhs = m.anti_dumping_index[location, tech] * (
                 m.capacity_ext_imported[stf, location, tech] + m.capacity_ext_stock_imported[stf, location, tech])
 
     # Print for debugging purposes
     print(f"Anti-Dumping Measure for {tech} at {location} in year {stf}: "
-          f"{m.anti_dumping_measures[stf, location, tech]} = {m.anti_dumping_index[tech]} * "
+          f"{m.anti_dumping_measures[stf, location, tech]} = {m.anti_dumping_index[location, tech]} * "
           f"({m.capacity_ext_imported[stf, location, tech]} + "
           f"{m.capacity_ext_stock_imported[stf, location, tech]})")
 
@@ -1622,7 +1636,7 @@ def timedelay_EU_primary_production_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_euprimary[stf, location, tech] - m.capacity_ext_euprimary[stf - 1, location, tech]
-        rhs = m.deltaQ_EUprimary[tech] + m.IR_EU_primary[tech] * m.capacity_ext_euprimary[stf - 1, location, tech]
+        rhs = m.deltaQ_EUprimary[location, tech] + m.IR_EU_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech]
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
@@ -1637,7 +1651,7 @@ def timedelay_EU_secondary_production_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_eusecondary[stf, location, tech] - m.capacity_ext_eusecondary[stf - 1, location, tech]
-        rhs = m.deltaQ_EUsecondary[tech] + m.IR_EU_secondary[tech] * m.capacity_ext_eusecondary[stf - 1, location, tech]
+        rhs = m.deltaQ_EUsecondary[location, tech] + m.IR_EU_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech]
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
@@ -1647,7 +1661,7 @@ def timedelay_EU_secondary_production_rule(m, stf, location, tech):
 
 #Constraint 16:
 def constraint1_EU_secondary_to_total_rule(m, stf, location, tech):
-    if m.y0 <= stf - m.l[tech]:
+    if m.y0 <= stf - m.l[location, tech]:
         # Retrieve values for debugging
         lhs = m.capacity_ext_eusecondary[stf, location, tech]
         rhs = m.capacity_ext_new[stf - m.l, location, tech]
@@ -1660,15 +1674,15 @@ def constraint1_EU_secondary_to_total_rule(m, stf, location, tech):
         return pyomo.Constraint.Skip
 
 #Constraint 17:
-def constraint2_EU_secondary_to_total_rule(m, stf):
-    if m.y0 >= stf-m.l[tech]:
+def constraint2_EU_secondary_to_total_rule(m, stf,location, tech):
+    if m.y0 >= stf-m.l[location, tech]:
         return m.capacity_solar_eusecondary[stf] <= m.DCR_solar[stf] * m.capacity_solar[stf]
     else:
         return pyomo.Constraint.Skip
 
 
 def constraint2_EU_secondary_to_total_rule(m, stf, location, tech):
-    if m.y0 >= stf - m.l[tech]:
+    if m.y0 >= stf - m.l[location, tech]:
         # Retrieve values for debugging
         lhs = m.capacity_ext_eusecondary[stf, location, tech]
         rhs = m.DCR_solar[stf, location, tech] * m.capacity_ext[stf, location, tech] #ToDo DCR Solar for other techs
@@ -1688,7 +1702,7 @@ def constraint_EU_primary_to_total_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_euprimary[stf, location, tech]
-        rhs = m.DR_primary[tech] * m.capacity_ext_euprimary[stf - 1, location, tech] #ToDo DR Solar for other techs
+        rhs = m.DR_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech] #ToDo DR Solar for other techs
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
@@ -1703,7 +1717,7 @@ def constraint_EU_secondary_to_secondary_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_eusecondary[stf, location, tech]
-        rhs = m.DR_secondary[tech] * m.capacity_ext_eusecondary[stf - 1, location, tech] #ToDo DR Solar for other techs
+        rhs = m.DR_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech] #ToDo DR Solar for other techs
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")

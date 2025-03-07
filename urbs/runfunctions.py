@@ -173,18 +173,33 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
         return importcost_dict, manufacturingcost_dict, remanufacturingcost_dict
 
-    def process_technologies_sheet(technologies_data):
-        """Processes the Technologies sheet into a structured dictionary, excluding NaN entries."""
-        technologies_dict = {}
+    def process_technology_sheet(technologies_data):
+        """Processes technology data into a structured dictionary indexed by location and technology."""
+        technologies_dict = {}  # Dictionary to store technologies by location
 
-        # Drop rows where 'Technologies' column is NaN
+        # Drop rows where 'Technologies' column is NaN (if any)
         technologies_data = technologies_data.dropna(subset=["Technologies"])
 
+        # Iterate through each row of the technologies sheet
         for _, row in technologies_data.iterrows():
-            tech_name = row["Technologies"]  # Extract technology name
-            # Convert all other columns to a dictionary, skipping NaN values
+            # Extract the full technology name (Location.Tech)
+            tech_full_name = row["Technologies"]
+
+            # Split it into location and technology
+            try:
+                location, tech_name = tech_full_name.split(".", 1)  # Split at the first dot
+            except ValueError:
+                print(f"Skipping invalid entry: {tech_full_name}")
+                continue  # Skip if there's no dot (invalid entry)
+
+            # Extract other attributes for the technology
             tech_attributes = row.drop("Technologies").dropna().to_dict()
-            technologies_dict[tech_name] = tech_attributes  # Store valid attributes
+
+            # Add to the dictionary, grouped by location and then technology
+            if location not in technologies_dict:
+                technologies_dict[location] = {}
+
+            technologies_dict[location][tech_name] = tech_attributes  # Store attributes under location -> technology
 
         return technologies_dict
 
@@ -273,7 +288,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
         installable_capacity_data = pd.read_excel(file_path, sheet_name="installable_capacity")
 
         # Process Technologies sheet
-        technologies_dict = process_technologies_sheet(technologies_data)
+        technologies_dict = process_technology_sheet(technologies_data)
         # Process the structured sheets
         stocklvl_dict = process_stocklvl_sheet(stocklvl_data)
         dcr_dict = process_dcr_sheet(dcr_data)
@@ -287,6 +302,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
         # Process the locations sheet: Extract non-empty values from the "Locations" column
         locations_list = locations_data.iloc[:, 0].dropna().tolist()
+        print(locations_list)
 
 
 
