@@ -35,6 +35,7 @@ def get_constants(instance):
 
     costs = get_entity(instance, 'costs')
     cpro = get_entities(instance, ['cap_pro', 'cap_pro_new'])
+    print("cpro",cpro)
     ctra = get_entities(instance, ['cap_tra', 'cap_tra_new'])
     csto = get_entities(instance, ['cap_sto_c', 'cap_sto_c_new',
                                    'cap_sto_p', 'cap_sto_p_new'])
@@ -87,7 +88,7 @@ def get_constants(instance):
     e_pro_out_co2 = {key: value for key, value in e_pro_out_df.items() if key[-1] == 'CO2'}
     df_co2 = pd.DataFrame(list(e_pro_out_co2.items()), columns=['Index', 'Value'])
 
-####us_balance
+####extension_balance
     # Filter e_pro_out_df for 'Elec'
     e_pro_out_elec = {key: value for key, value in e_pro_out_df.items() if key[-1] == 'Elec'}
     # Convert to DataFrame
@@ -151,89 +152,27 @@ def get_constants(instance):
                                  ignore_index=True)
     cost_df_combined = round(cost_df_combined.groupby(['stf', 'pro'])['Total_Cost'].sum().reset_index(), 2)
 
-####us_capacity
-    # Resetting the index for processing
-    cext.reset_index(inplace=True)
-
-    # Melting the DataFrame
-    long_cext = cext.melt(id_vars='stf', var_name='pro', value_name='New')
-
-    # Grouping by year and process type
-    capacity_sum = long_cext.groupby(['stf', 'pro'])['New'].sum().reset_index()
-
-    # Initialize Total
-    capacity_sum['Total'] = 0
-
-    # Loop through each row to compute Total
-    for i, row in capacity_sum.iterrows():
-        current_year = row['stf']
-        process_type = row['pro']
-
-        # Calculate total capacity for the process type
-        total_capacity = capacity_sum[
-            (capacity_sum['pro'] == process_type) &
-            (capacity_sum['stf'] <= current_year)
-            ]['New'].sum()
-
-        # Update Total
-        capacity_sum.at[i, 'Total'] = total_capacity
-
-    # Calculate Solar Stock
-    # Assuming you have these columns in cext DataFrame
-    # Initialize the Solar Stock calculation with the given value for year 0
-    initial_capacity = 40000  # Initial stock for year 0
-
-    # Create a DataFrame for Solar Stock
-    ext_stock_data = []
-
-    for year in cext['stf'].unique():
-        if year == 2024:
-            ext_stock = initial_capacity+cext[cext['stf'] == year]['capacity_ext_stock_imported'].sum() - cext[cext['stf'] == year]['capacity_ext_stockout'].sum()
-        else:
-            ext_stock = cext[cext['stf'] == year]['capacity_ext_stock_imported'].sum() - \
-                          cext[cext['stf'] == year]['capacity_ext_stockout'].sum()
-
-        ext_stock_data.append({'stf': year, 'pro': 'ext Stock', 'New': ext_stock})
-
-    # Convert to DataFrame
-    ext_stock_df = pd.DataFrame(ext_stock_data)
-
-    # Calculate the Total for Solar Stock
-    ext_stock_df['Total'] = ext_stock_df['New'].cumsum()  # Cumulative sum to get Total for Solar Stock
-
-    # Combine Solar Stock Data with Capacity Sum
-    capacity_sum = pd.concat([capacity_sum, ext_stock_df], ignore_index=True)
-
-    # Filter out unwanted processes
-    processes_to_remove = ['capacity_ext_stock_imported', 'capacity_ext_stock']
-    capacity_sum = capacity_sum[~capacity_sum['pro'].isin(processes_to_remove)]
-
-    # Create a final index and DataFrame
-    final_index = pd.MultiIndex.from_tuples(
-        [(row['stf'], 'EU27', row['pro']) for _, row in capacity_sum.iterrows()],
-        names=['Stf', 'Site', 'Process']
-    )
-
-    # Creating the final DataFrame
-    final_ext_df = pd.DataFrame({
-        'Total': capacity_sum['Total'].values,
-        'New': capacity_sum['New'].values
-    }, index=final_index)
-
-    # Setting float levels for index
-    final_ext_df.index = final_ext_df.index.set_levels([float(i) for i in final_ext_df.index.levels[0]], level=0)
-
-    # Final output excludes 'capacity_ext_stock_imported' and 'capacity_ext_stock'
-
-    # Final output includes the new 'Solar Stock' process
-
-    # better labels and index names and return sorted
-    if not cpro.empty:
-        cpro.index.names = ['Stf', 'Site', 'Process']
-        cpro.columns = ['Total', 'New']
-        cpro.sort_index(inplace=True)
-    final_cpro = pd.concat([cpro.reset_index(), final_ext_df.reset_index().drop(columns='Site')], ignore_index=True)
-    final_cpro.set_index(['Stf', 'Site', 'Process'], inplace=True)
+####extension_capacity
+    # Extract total capacity from capacity_ext_total
+    total_capacity = capacity_ext_total.reset_index()[['stf', 'location', 'tech', 'capacity_ext']]
+    # Calculate newly added capacity from cext by summing relevant columns
+    cext['newly_added_capacity'] = cext[
+        ['capacity_ext_imported', 'capacity_ext_stockout', 'capacity_ext_euprimary', 'capacity_ext_eusecondary']].sum(
+        axis=1)
+    new_capacity = cext.reset_index()[['stf', 'location', 'tech', 'newly_added_capacity']]
+    # Merge total capacity and newly added capacity on 'stf', 'location', and 'tech'
+    merged_capacity = pd.merge(total_capacity, new_capacity, on=['stf', 'location', 'tech'], how='left')
+    merged_capacity['newly_added_capacity'] = merged_capacity['newly_added_capacity'].fillna(0)
+    # Rename columns to match cpro structure and set index
+    merged_capacity = merged_capacity.rename(
+        columns={'stf': 'stf', 'location': 'sit', 'tech': 'pro', 'capacity_ext': 'cap_pro',
+                 'newly_added_capacity': 'cap_pro_new'})
+    merged_capacity = merged_capacity.set_index(['stf', 'sit', 'pro'])
+    # Identify rows in merged_capacity not in cpro and concatenate them
+    new_rows = merged_capacity[~merged_capacity.index.isin(cpro.index)]
+    updated_cpro = pd.concat([cpro, new_rows]).sort_index()
+    # Display the final updated dataframe
+    print(updated_cpro)
 ########################################################################################################################
 
 
@@ -249,15 +188,11 @@ def get_constants(instance):
 
 #### Process df's to be used in report sheets
 
-    combined_cpro_cext = pd.concat([final_cpro, final_ext_df])
-    combined_cpro_cext = round(combined_cpro_cext.groupby(level=['Stf', 'Site', 'Process']).sum(),2)
-
-
     ext_costs = ext_costs.rename('costs')
     combined_costs_df = pd.concat([costs, ext_costs], ignore_index=False)
 
 
-    return costs, cpro, ctra, csto, cext,combined_cpro_cext,cost_df_combined,capacity_ext_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec
+    return costs, cpro, ctra, csto, cext,updated_cpro,cost_df_combined,capacity_ext_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec
 
 
 def get_timeseries(instance, stf, com, sites, timesteps=None):

@@ -20,7 +20,7 @@ def report(instance, filename, report_tuples=None, report_sites_name={}):
     if report_tuples is None:
         report_tuples = get_input(instance, 'demand').columns
 
-    costs, cpro, ctra, csto, cext,combined_cpro_cext,cost_df_combined,capacity_ext_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec = get_constants(instance)
+    costs, cpro, ctra, csto, cext,updated_cpro,cost_df_combined,capacity_ext_total,df_co2,combined_balance,decisionvalues_pri,decisionvalues_sec = get_constants(instance)
 
     # create spreadsheet writer object
     with pd.ExcelWriter(filename) as writer:
@@ -31,12 +31,12 @@ def report(instance, filename, report_tuples=None, report_sites_name={}):
         decisionvalues_sec.to_excel(writer, sheet_name='us_BDsec_values')
 
         #urbs-ext reports
-        cext.to_excel(writer, sheet_name='us_extcaps')
+        cext.to_excel(writer, sheet_name='extension_only_caps')
         cost_df_combined.to_excel(writer, sheet_name='extension_cost')
-        combined_cpro_cext.to_excel(writer, sheet_name='us_capacity')
-        combined_balance.to_excel(writer, sheet_name='us_balance', index=False)
+        updated_cpro.to_excel(writer, sheet_name='extension_total_caps')
+        combined_balance.to_excel(writer, sheet_name='extension_balance', index=False)
         df_co2.to_excel(writer, sheet_name='us_co2', index=False)
-        capacity_ext_total.to_excel(writer, sheet_name='us_solarcapacity')
+        capacity_ext_total.to_excel(writer, sheet_name='extension_only_totalcapacity')
 
         #################################################################################
 
