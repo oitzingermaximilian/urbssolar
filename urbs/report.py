@@ -32,7 +32,7 @@ def report(instance, filename, report_tuples=None, report_sites_name={}):
 
         #urbs-ext reports
         cext.to_excel(writer, sheet_name='us_extcaps')
-        cost_df_combined.to_excel(writer, sheet_name='us_cost')
+        cost_df_combined.to_excel(writer, sheet_name='extension_cost')
         combined_cpro_cext.to_excel(writer, sheet_name='us_capacity')
         combined_balance.to_excel(writer, sheet_name='us_balance', index=False)
         df_co2.to_excel(writer, sheet_name='us_co2', index=False)

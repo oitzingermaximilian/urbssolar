@@ -63,20 +63,22 @@ def get_constants(instance):
 ####Gather all relevant urbs-ext df's
 
     process_cost = get_entity(instance, 'process_costs')
-
+    print("process cost",process_cost)
     ext_costs = get_entity(instance,'costs_new')
-
+    print("ext_cost",ext_costs)
     cext = get_entities(instance, ['capacity_ext_imported', 'capacity_ext_stockout',
                                      'capacity_ext_euprimary', 'capacity_ext_eusecondary',
                                      'capacity_ext_stock','capacity_ext_stock_imported'])
-
+    print("cext",cext)
     bext = get_entity(instance, 'balance_ext')
-
+    print("bext",bext)
     yearly_cost_ext = get_entities(instance, ['costs_ext_import', 'costs_ext_storage',
                                      'costs_EU_primary', 'costs_EU_secondary'])
+    print("yearly ext cost",yearly_cost_ext)
     capacity_ext_total = get_entity(instance, 'capacity_ext')
-
+    print("capacity ext total",capacity_ext_total)
     e_pro_out_df = get_entity(instance, 'e_pro_out')
+    print("e pro out df",e_pro_out_df)
     #print(e_pro_out_df)
 
 #####Process df's to be used in report sheets
@@ -86,36 +88,68 @@ def get_constants(instance):
     df_co2 = pd.DataFrame(list(e_pro_out_co2.items()), columns=['Index', 'Value'])
 
 ####us_balance
+    # Filter e_pro_out_df for 'Elec'
     e_pro_out_elec = {key: value for key, value in e_pro_out_df.items() if key[-1] == 'Elec'}
-    #print(e_pro_out_elec)
+    # Convert to DataFrame
     df_Elec = pd.DataFrame(list(e_pro_out_elec.items()), columns=['Index', 'Value'])
-    df_Elec['Stf'] = df_Elec['Index'].apply(lambda x: int(x[1]))
-    df_bext = pd.DataFrame(bext, columns=['balance_ext'])
-    df_bext['Index'] = range(2024, 2051)
-    ext_process = pd.DataFrame({
-        'Index': [(1,float(year),'EU27', 'solarPV', 'Elec') for year in df_bext['Index']],
-        'Value': df_bext['balance_ext'],
-        'Stf': df_bext['Index']
-    })
+    df_Elec['Stf'] = df_Elec['Index'].apply(lambda x: int(x[1]))  # Extract year from the MultiIndex
+    df_Elec['Site'] = df_Elec['Index'].apply(lambda x: x[2])  # Extract site from the MultiIndex
+    df_Elec['Process'] = df_Elec['Index'].apply(lambda x: x[3])  # Extract process from the MultiIndex
+    # Process bext data
+    df_bext = pd.DataFrame(bext.items(), columns=['Index', 'balance_ext'])
+    df_bext['Stf'] = df_bext['Index'].apply(lambda x: x[0])  # Extract year from the Index
+    df_bext['Site'] = df_bext['Index'].apply(lambda x: x[1])  # Extract site from the Index
+    df_bext['Process'] = df_bext['Index'].apply(lambda x: x[2])  # Extract technology from the Index
+    # Create ext_process DataFrame dynamically
+    ext_process_list = []
+    for year in df_bext['Stf'].unique():
+        for site in df_bext[df_bext['Stf'] == year]['Site'].unique():
+            for tech in df_bext[(df_bext['Stf'] == year) & (df_bext['Site'] == site)]['Process'].unique():
+                ext_process_list.append({
+                    'Index': (1, float(year), site, tech, 'Elec'),
+                    'Value':
+                        df_bext[(df_bext['Stf'] == year) & (df_bext['Site'] == site) & (df_bext['Process'] == tech)][
+                            'balance_ext'].values[0],
+                    'Stf': year,
+                    'Site': site,
+                    'Process': tech
+                })
+    ext_process = pd.DataFrame(ext_process_list)
+    # Combine the data
     combined_balance = pd.concat([df_Elec, ext_process], ignore_index=True)
     combined_balance = combined_balance.sort_values(by='Stf').reset_index(drop=True)
+    # Split the 'Index' column into individual columns
     combined_balance[['tm', 'Year', 'Site', 'Process', 'Type']] = pd.DataFrame(combined_balance['Index'].tolist(),
-                                                                                 index=combined_balance.index)
-    combined_balance = combined_balance[['Stf','Process', 'Value']]
+                                                                               index=combined_balance.index)
+    # Select relevant columns
+    combined_balance = combined_balance[['Stf', 'Site', 'Process', 'Value']]
 
-
-####us_cost
+####extension_cost
     df_process = pd.DataFrame(process_cost)
     df_process_reset = df_process.reset_index()
-    cost_types_to_sum = ['Invest','Fixed', 'Variable', 'Fuel', 'Environmental']
+    cost_types_to_sum = ['Invest', 'Fixed', 'Variable', 'Fuel', 'Environmental']
     df_process_summed = df_process_reset[df_process_reset['cost_type'].isin(cost_types_to_sum)].groupby(
         ['stf', 'pro'])['process_costs'].sum().reset_index()
     df_process_summed.rename(columns={'process_costs': 'Total_Cost'}, inplace=True)
-    df_ext_melted = yearly_cost_ext.reset_index().melt(id_vars='stf',
-                                                  var_name='pro',
-                                                  value_name='Total_Cost')
-    cost_df_combined = pd.concat([df_process_summed, df_ext_melted], ignore_index=True)
-    cost_df_combined = round(cost_df_combined.groupby(['stf', 'pro'])['Total_Cost'].sum().reset_index(),2)
+
+    # Process the yearly_cost_ext data
+    df_ext_melted = yearly_cost_ext.reset_index().melt(
+        id_vars=['stf', 'location', 'tech'],
+        var_name='cost_type',
+        value_name='Total_Cost'
+    )
+
+    # Prepend the technology name to the cost type
+    df_ext_melted['pro'] = df_ext_melted['tech'] + '_' + df_ext_melted['cost_type']
+
+    # Filter out rows where 'cost_type' is not a cost type (optional, if needed)
+    cost_types_ext = ['costs_ext_import', 'costs_ext_storage', 'costs_EU_primary', 'costs_EU_secondary']
+    df_ext_melted_filtered = df_ext_melted[df_ext_melted['cost_type'].isin(cost_types_ext)]
+
+    # Combine the data
+    cost_df_combined = pd.concat([df_process_summed, df_ext_melted_filtered[['stf', 'pro', 'Total_Cost']]],
+                                 ignore_index=True)
+    cost_df_combined = round(cost_df_combined.groupby(['stf', 'pro'])['Total_Cost'].sum().reset_index(), 2)
 
 ####us_capacity
     # Resetting the index for processing
