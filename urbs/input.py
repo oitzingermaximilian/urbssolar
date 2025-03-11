@@ -225,7 +225,7 @@ def pyomo_model_prep(data, timesteps):
     # creating list wih cost types
     ##TODO: solar cost type list
     m.cost_type_list = ['Invest', 'Fixed', 'Variable', 'Fuel', 'Environmental']
-    m.cost_solar_list = ['Importcost','Storagecost','Eu Cost Primary','Eu Cost Secondary']
+    m.cost_new_list = ['Importcost','Storagecost','Eu Cost Primary','Eu Cost Secondary']
 
 
     # Converting Data frames to dict

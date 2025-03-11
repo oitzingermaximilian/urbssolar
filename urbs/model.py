@@ -5,8 +5,7 @@ from .features import *
 from .input import *
 
 
-def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
-                 eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict, dt=8760,
+def create_model(data,data_urbsextensionv1,dt=8760,
                  timesteps=None, objective='cost',dual = None):
     """Create a pyomo ConcreteModel urbs object from given input data.
 
@@ -31,6 +30,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     m.name = 'urbs'
     m.created = datetime.now().strftime('%Y%m%dT%H%M')
     m._data = data
+
 
 
 
@@ -103,6 +103,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     )
 
     # site (e.g. north, middle, south...)
+
     indexlist = list()
     for key in m.commodity_dict["price"]:
         if key[1] not in indexlist:
@@ -143,19 +144,84 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         initialize=m.cost_type_list,
         doc='Set of cost types (hard-coded)')
 
+    ###############################################
+    # universal sets and params for extension v1.0#
+    ###############################################
+
+    #Excel read in
+    base_params = data_urbsextensionv1["base_params"]
+    #hard coded cost_types
+    m.cost_type_new = pyomo.Set(
+        initialize=m.cost_new_list,
+        doc='Set of cost types (hard-coded)')
+    #Base sheet read in
+    m.y0 = pyomo.Param(initialize=base_params["y0"])  # Initial year
+    m.y_end = pyomo.Param(initialize=base_params["y_end"])  # End year
+    m.hours_year = pyomo.Param(initialize=base_params["hours"])  # Hours per year
+    # locations sheet read in
+    m.location = pyomo.Set(initialize=data_urbsextensionv1["locations_list"])  # sites to be modelled
+
+    # Extract all unique technologies across all locations
+    all_techs = set()
+    for loc in data_urbsextensionv1["technologies"]:
+        all_techs.update(data_urbsextensionv1["technologies"][loc].keys())
+
+    # Define the technology set
+    m.tech = pyomo.Set(initialize=all_techs)
+    #
+    # Helper function to initialize parameters with default values
+    def initialize_param(param_name, default_value=0):
+        return {(loc, t): data_urbsextensionv1["technologies"].get(loc, {}).get(t, {}).get(param_name, default_value)
+                for loc in m.location for t in m.tech}
+
+    # Define parameters using the helper function
+    m.n = pyomo.Param(m.location, m.tech,initialize=initialize_param('n turnover stockpile', default_value=0))  # Turnover of stockpile
+    m.l = pyomo.Param(m.location, m.tech, initialize=initialize_param('l', default_value=0))
+    m.Installed_Capacity_Q_s = pyomo.Param(m.location, m.tech, initialize=initialize_param('InitialCapacity',default_value=0))  # Initial installed capacity MW
+    m.Existing_Stock_Q_stock = pyomo.Param(m.location, m.tech, initialize=initialize_param('InitialStockpile',default_value=0))  # Initial stocked capacity
+    m.FT = pyomo.Param(m.location, m.tech, initialize=initialize_param('FT', default_value=0))  # Factor
+    m.anti_dumping_index = pyomo.Param(m.location, m.tech, initialize=initialize_param('anti duping Index',default_value=0))  # Anti-dumping index
+    m.deltaQ_EUprimary = pyomo.Param(m.location, m.tech,initialize=initialize_param('dQ EU Primary', default_value=0))  # ΔQ EU Primary
+    m.deltaQ_EUsecondary = pyomo.Param(m.location, m.tech, initialize=initialize_param('dQ EU Secondary',default_value=0))  # ΔQ EU Secondary
+    m.IR_EU_primary = pyomo.Param(m.location, m.tech,initialize=initialize_param('IR EU Primary', default_value=0))  # IR EU Primary
+    m.IR_EU_secondary = pyomo.Param(m.location, m.tech,initialize=initialize_param('IR EU Secondary', default_value=0))  # IR EU Secondary
+    m.DR_primary = pyomo.Param(m.location, m.tech,initialize=initialize_param('DR Primary', default_value=0))  # DR Primary
+    m.DR_secondary = pyomo.Param(m.location, m.tech,initialize=initialize_param('DR Secondary', default_value=0))  # DR Secondary
+    m.STORAGECOST = pyomo.Param(m.location, m.tech, initialize=initialize_param('Storagecost', default_value=0))
+    m.logisticcost = pyomo.Param(m.location, m.tech, initialize=initialize_param('logisticcost', default_value=0))
+
+    #cost sheet read in
+    m.IMPORTCOST = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["importcost_dict"])
+    m.EU_primary_costs = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["manufacturingcost_dict"])
+    m.EU_secondary_costs = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["remanufacturingcost_dict"])
+
+    #instalable_capacity_sheet read in
+    m.Q_ext_new = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["installable_capacity_dict"])
+    #DCR sheet read in
+    m.DCR_solar = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["dcr_dict"])  # DCR Solar
+    #stocklvl sheet read in
+    m.min_stocklvl = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["stocklvl_dict"])
+    #loadfactors sheet read in
+    # Capacity to Balance with loadfactor and h/a
+    m.lf_solar = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["loadfactors_dict"])  # lf Solar
+
+
+
+
+
     ########################################
-    # dynamic feedback loop sets and params#     13. January 2025
+    # dynamic feedback loop EEM sets and params#     13. January 2025
     ########################################
 
-    # -------EU-Primary-------#
+    # -------EU-Primary-------# ToDo enable if needed
     #index set for n (=steps of linearization)
-    m.nsteps_pri = pyomo.Set(initialize=range(0, 7))
+    #m.nsteps_pri = pyomo.Set(initialize=range(0, 7))
     #param def for price reduction
-    m.P_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 172444.8, 2: 246826.8
-        , 3: 279008.4, 4: 292974, 5: 299046, 6: 301656.96})
-    m.capacityperstep_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 100, 2: 1000, 3: 10000, 4: 100000, 5:1000000, 6:10000000})
+    #m.P_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 172444.8, 2: 246826.8
+    #    , 3: 279008.4, 4: 292974, 5: 299046, 6: 301656.96})
+    #m.capacityperstep_pri = pyomo.Param(m.nsteps_pri, initialize={0: 0, 1: 100, 2: 1000, 3: 10000, 4: 100000, 5:1000000, 6:10000000})
     #param for gamma
-    m.gamma_pri = pyomo.Param(initialize=1e10)
+    #m.gamma_pri = pyomo.Param(initialize=1e10)
 
     # -------EU-Secondary-------#
     #index set for n (=steps of linearization)
@@ -214,7 +280,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     #    5: 410518.1277,
     #    6: 412661.0161
     #})
-
+    #EEM6 LR 2.5%
     variation_6 = {
         0: 0,
         1: 33395.02122,
@@ -224,7 +290,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 142123.9441,
         6: 164054.6365
     }
-
+    # EEM7 LR 3%
     variation_7 = {
         0: 0,
         1: 39840.31305,
@@ -234,7 +300,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 164377.572,
         6: 188399.3973
     }
-
+    # EEM8 LR 3.5%
     variation_8 = {
         0: 0,
         1: 46208.92298,
@@ -244,7 +310,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 184910.8195,
         6: 210480.7816
     }
-
+    # EEM9 LR 4%
     variation_9 = {
         0: 0,
         1: 52501.37307,
@@ -254,7 +320,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 203848.7895,
         6: 230499.0966
     }
-
+    # EEM10 LR 4.5%
     variation_10 = {
         0: 0,
         1: 58718.18454,
@@ -264,7 +330,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 221308.0674,
         6: 248637.827
     }
-
+    # EEM11 LR 3.75%
     variation_11 = {
         0: 0,
         1: 49364.63541,
@@ -274,6 +340,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 194571.7345,
         6: 220735.9768
     }
+    # EEM12 LR 3.6%
     variation_12 = {
         0: 0,
         1: 47473.48909,
@@ -283,7 +350,7 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 188822.1859,
         6: 214643.3852
     }
-
+    # EEM13 LR 3.7%
     variation_13 = {
         0: 0,
         1: 48735.01299,
@@ -293,68 +360,62 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
         5: 192670.7272,
         6: 218725.0388
     }
-    variation_14 = {
-        0: 0,
-        1: 46841.69972,
-        2: 88383.54549,
-        3: 125225.1836,
-        4: 157898.4141,
-        5: 186874.8668,
-        6: 212572.8099
+    # EEM14 LR 3.55%
+    # Define variation_14 correctly for each (nsteps_sec, tech) combination.
+    # Assuming wind is added to m.tech and further locations
+    # P_sec initialization (price reduction)
+    variation_14_updated = {
+        (n, tech, loc): value if tech == 'solarPV' else 0
+        for n, value in {
+            0: 0,
+            1: 46841.69972,
+            2: 88383.54549,
+            3: 125225.1836,
+            4: 157898.4141,
+            5: 186874.8668,
+            6: 212572.8099
+        }.items()
+        for tech in m.tech
+        for loc in m.location
     }
 
-    m.P_sec = pyomo.Param(m.nsteps_sec, initialize=variation_14)
+    # Initialize m.P_sec
+    m.P_sec = pyomo.Param(m.nsteps_sec, m.tech, m.location, initialize=variation_14_updated)
+
     #param def for Capacity needed to reach next step
-    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, initialize={0: 0, 1: 100, 2: 1000, 3: 10000, 4: 100000, 5:1000000, 6:10000000})
+    # Initialize the dictionary with values for capacityperstep_sec
+    capacity_init_values = {}
+
+    # Loop over all nsteps_sec, location, and tech
+    for n in m.nsteps_sec:
+        for loc in m.location:
+            for tech in m.tech:
+                if tech == 'solarPV':
+                    # Use the predefined capacity values for solarPV (or any logic you want for tech)
+                    capacity_init_values[(n, loc, tech)] = {
+                        0: 0,
+                        1: 100,
+                        2: 1000,
+                        3: 10000,
+                        4: 100000,
+                        5: 1000000,
+                        6: 10000000
+                    }.get(n, 0)  # Default to 0 for other steps
+                else:
+                    # For other technologies (like wind), set the default to 0
+                    capacity_init_values[(n, loc, tech)] = 0
+    print(capacity_init_values)
+
+    # Now initialize the Param with the dictionary
+    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, m.location, m.tech, initialize=capacity_init_values)
+
+    # Initialize m.capacityperstep_sec
+    m.capacityperstep_sec = pyomo.Param(m.nsteps_sec, m.location,m.tech, initialize=capacity_init_values)
+
     #param for gamma
     m.gamma_sec = pyomo.Param(initialize=1e10)
 
-    ########################################
-    # New Sets & Params used for urbs-solar#
-    ########################################
-
-    m.cost_type_solar = pyomo.Set(
-        initialize=m.cost_solar_list,
-        doc='Set of cost types (hard-coded)')
-    # Input Params urbs-solar
-    # basic params
-    m.y0 = pyomo.Param(initialize=int(param_dict['Start Year y0']))  # Initial year
-    m.y_end = pyomo.Param(initialize=int(param_dict['End Year yn']))  # End year
-    m.n = pyomo.Param(initialize=int(param_dict['n turnover stockpile']))
-    m.l = pyomo.Param(initialize=int(param_dict['l']))
-
-    # Capacities ( capacity(t=0), stock(t=0), instalable (max/a) )
-    m.Installed_Capacity_Q_s = pyomo.Param(initialize=int(param_dict['InitialCapacity']))  # Initial installed capacity MW
-    m.Existing_Stock_Q_stock = pyomo.Param(initialize=int(param_dict['Existing Stock in y0']))  # Initial stock in y0
-    m.Q_Solar_new = pyomo.Param(m.stf, initialize=instalable_capacity_dict)
-    #print("Initialized values for Q_Solar_new:")
-    #for stf in m.stf:
-    #    print(f"Year: {stf}, Q_Solar_new: {m.Q_Solar_new[stf]}")
-
-    # cost params in €/MW
-    m.IMPORTCOST = pyomo.Param(m.stf, initialize=importcost_dict)
-    m.STORAGECOST = pyomo.Param(initialize=float(param_dict['Storagecost / MW']))
-    m.EU_primary_costs = pyomo.Param(m.stf, initialize=eu_primary_cost_dict)
-    m.EU_secondary_costs = pyomo.Param(m.stf, initialize=eu_secondary_cost_dict)
-    m.logisticcost = pyomo.Param(initialize=float(5)) #to avoid instant storage takeout
-
-    m.FT = pyomo.Param(initialize=float(param_dict['FT']))  # Factor
-    m.anti_dumping_index = pyomo.Param(initialize=float(param_dict['anti duping Index']))  # Anti-dumping index
-    m.deltaQ_EUprimary = pyomo.Param(initialize=float(param_dict['dQ EU Primary']))  # ΔQ EU Primary
-    m.deltaQ_EUsecondary = pyomo.Param(initialize=float(param_dict['dQ EU Secondary']))  # ΔQ EU Secondary
-    m.IR_EU_primary = pyomo.Param(initialize=float(param_dict['IR EU Primary']))  # IR EU Primary
-    m.IR_EU_secondary = pyomo.Param(initialize=float(param_dict['IR EU Secondary']))  # IR EU Secondary
-    m.DCR_solar = pyomo.Param(m.stf, initialize=dcr_dict)  # DCR Solar
-    m.DR_primary = pyomo.Param(initialize=float(param_dict['DR Primary']))  # DR Primary
-    m.DR_secondary = pyomo.Param(initialize=float(param_dict['DR Secondary']))  # DR Secondary
-    m.min_stocklvl = pyomo.Param(m.stf, initialize=stocklvl_dict)
-
-
-    # Capacity to Balance with loadfactor and h/a
-    m.lf_solar = pyomo.Param(initialize=float(param_dict['lf Solar']))  # lf Solar
-    m.hours_year = pyomo.Param(initialize=int(param_dict['hours per year']))  # Hours per year
-
-#######################################End of urbs-solar Params#########################################################
+   ##########----------end EEM Addition-----------###############
 
     # tuple sets
     m.sit_tuples = pyomo.Set(
@@ -515,45 +576,47 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     #       dynamic feedback loop vars     #     13. January 2025
     ########################################
     # -------EU-Primary-------#
-    m.pricereduction_pri = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.BD_pri = pyomo.Var(m.stf, m.nsteps_pri, domain=pyomo.Binary)
+    #m.pricereduction_pri = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
+    #m.BD_pri = pyomo.Var(m.stf, m.nsteps_pri, domain=pyomo.Binary)
 
     # -------EU-Secondary-------#
-    m.pricereduction_sec = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.BD_sec = pyomo.Var(m.stf, m.nsteps_sec, domain = pyomo.Binary)
+    # pricereduction_sec (price reduction variable)
+    m.pricereduction_sec = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    # BD_sec (binary decision variable for BD)
+    m.BD_sec = pyomo.Var(m.stf,m.location, m.tech, m.nsteps_sec, domain=pyomo.Binary)
 
     ################################
-    # Variables used for urbs_solar#
+    # Variables used for urbs_ext#
     ################################
 
-    # capacity variables (MW)
-    m.capacity_solar = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_new = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_imported = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_stockout = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_euprimary = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_eusecondary = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_stock = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.capacity_solar_stock_imported = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
+    # capacity variables (MW) ext as extension for certain processes
+    m.capacity_ext = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_new = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_imported = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_stockout = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_euprimary = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_eusecondary = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_stock = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.capacity_ext_stock_imported = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
 
 
-    m.sum_outofstock = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.sum_stock = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
-    m.anti_dumping_measures = pyomo.Var(m.stf, domain=pyomo.NonNegativeReals)
+    m.sum_outofstock = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.sum_stock = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
+    m.anti_dumping_measures = pyomo.Var(m.stf, m.location, m.tech, domain=pyomo.NonNegativeReals)
 
     # balance Variables (MWh) : only used for results & res_vertex_rule
-    m.balance_solar = pyomo.Var(m.stf, within=pyomo.NonNegativeReals) # --> res_vertex_rule
-    m.balance_import = pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.balance_outofstock = pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.balance_EU_primary = pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.balance_EU_secondary = pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
+    m.balance_ext = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals) # --> res_vertex_rule
+    m.balance_import_ext = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.balance_outofstock_ext = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.balance_EU_primary_ext = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.balance_EU_secondary_ext = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
 
     # cost Variables (€/MW): main objective Function --> minimize cost
-    m.costs_solar = pyomo.Var(m.cost_type_solar, domain=pyomo.NonNegativeReals)
-    m.costs_solar_import = pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.costs_solar_storage =pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.costs_EU_primary =pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
-    m.costs_EU_secondary =pyomo.Var(m.stf, within=pyomo.NonNegativeReals)
+    m.costs_new = pyomo.Var(m.cost_type_new, domain=pyomo.NonNegativeReals)
+    m.costs_ext_import = pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.costs_ext_storage =pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.costs_EU_primary =pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
+    m.costs_EU_secondary =pyomo.Var(m.stf, m.location, m.tech, within=pyomo.NonNegativeReals)
 
 
     if m.mode['tra']:
@@ -580,42 +643,42 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
 
 
     ##################################
-    # Constraints used for urbs_solar#
+    # Constraints used for urbs_ext  #
     ##################################
 
-    m.capacity_solar_growth_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_growth_rule)
-    m.initial_capacity_constraint = pyomo.Constraint(m.stf, rule=initial_capacity_rule)
-    m.capacity_solar_new_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_new_rule)
-    m.capacity_solar_stock_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_stock_rule)
-    m.capacity_solar_stock_initial_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_stock_initial_rule)
-    m.anti_dumping_measures_constraint = pyomo.Constraint(m.stf, rule=anti_dumping_measures_rule)
-    m.capacity_solar_new_limit_constraint = pyomo.Constraint(m.stf, rule=capacity_solar_new_limit_rule)
-    m.timedelay_EU_primary_production_constraint = pyomo.Constraint(m.stf, rule=timedelay_EU_primary_production_rule)
-    m.timedelay_EU_secondary_production_constraint = pyomo.Constraint(m.stf, rule=timedelay_EU_secondary_production_rule)
+    m.capacity_ext_growth_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_growth_rule)
+    m.initial_capacity_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=initial_capacity_rule)
+    m.capacity_ext_new_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_new_rule)
+    m.capacity_ext_stock_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_stock_rule)
+    m.capacity_ext_stock_initial_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_stock_initial_rule)
+    m.anti_dumping_measures_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=anti_dumping_measures_rule)
+    m.capacity_ext_new_limit_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_new_limit_rule)
+    m.timedelay_EU_primary_production_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=timedelay_EU_primary_production_rule)
+    m.timedelay_EU_secondary_production_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=timedelay_EU_secondary_production_rule)
     #m.constraint_EU_secondary1_to_total_constraint = pyomo.Constraint(m.stf,rule=constraint1_EU_secondary_to_total_rule)
-    m.constraint_EU_secondary2_to_total_constraint = pyomo.Constraint(m.stf,rule=constraint2_EU_secondary_to_total_rule)
-    m.constraint_EU_primary_to_total_constraint = pyomo.Constraint(m.stf, rule=constraint_EU_primary_to_total_rule)
-    m.constraint_EU_secondary_to_secondary_constraint = pyomo.Constraint(m.stf,rule=constraint_EU_secondary_to_secondary_rule)
-    m.cost_constraint_solar = pyomo.Constraint(m.cost_type_solar, rule=def_costs_solar)
-    m.max_intostock_constraint= pyomo.Constraint(m.stf,rule=max_intostock_rule)
+    m.constraint_EU_secondary2_to_total_constraint = pyomo.Constraint(m.stf, m.location, m.tech,rule=constraint2_EU_secondary_to_total_rule)
+    m.constraint_EU_primary_to_total_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=constraint_EU_primary_to_total_rule)
+    m.constraint_EU_secondary_to_secondary_constraint = pyomo.Constraint(m.stf, m.location, m.tech,rule=constraint_EU_secondary_to_secondary_rule)
+    m.cost_constraint_new = pyomo.Constraint(m.cost_type_new, rule=def_costs_new)
+    m.max_intostock_constraint= pyomo.Constraint(m.stf, m.location, m.tech,rule=max_intostock_rule)
 
-    m.balance_import_constraint = pyomo.Constraint(m.stf, rule=convert_capacity_1_rule)
-    m.balance_balance_outofstock_constraint = pyomo.Constraint(m.stf, rule=convert_capacity_2_rule)
-    m.balance_EU_primary_constraint = pyomo.Constraint(m.stf, rule=convert_capacity_3_rule)
-    m.balance_EU_secondary_constraint = pyomo.Constraint(m.stf, rule=convert_capacity_4_rule)
-    m.balance_solar_constraint = pyomo.Constraint(m.stf, rule=convert_totalcapacity_to_balance)
+    m.balance_import_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=convert_capacity_1_rule)
+    m.balance_balance_outofstock_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=convert_capacity_2_rule)
+    m.balance_EU_primary_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=convert_capacity_3_rule)
+    m.balance_EU_secondary_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=convert_capacity_4_rule)
+    m.balance_ext_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=convert_totalcapacity_to_balance)
 
-    m.yearly_storagecost_constraint = pyomo.Constraint(m.stf, rule=calculate_yearly_storagecost)
-    m.yearly_importcost_constraint = pyomo.Constraint(m.stf, rule=calculate_yearly_importcost)
-    m.yearly_eumanufacturing_constraint =pyomo.Constraint(m.stf, rule=calculate_yearly_EU_primary)
-    m.yearly_eurecycling_constraint = pyomo.Constraint(m.stf, rule=calculate_yearly_EU_secondary)
-
-
+    m.yearly_storagecost_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=calculate_yearly_storagecost)
+    m.yearly_importcost_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=calculate_yearly_importcost)
+    m.yearly_eumanufacturing_constraint =pyomo.Constraint(m.stf, m.location, m.tech, rule=calculate_yearly_EU_primary)
+    m.yearly_eurecycling_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=calculate_yearly_EU_secondary)
 
 
-    #Constraints for Scenarios ENABLE IF NEEDED
-    m.stock_turnover_constraint = pyomo.Constraint(m.stf, rule=stock_turnover_rule)
-    m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_a)
+
+
+    #Constraints for Scenarios ToDo ENABLE IF NEEDED
+    #m.stock_turnover_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=stock_turnover_rule)
+    m.net_zero_industrialactbenchmark_a = pyomo.Constraint(m.stf, m.location, m.tech, rule=net_zero_industrialactbenchmark_rule_a)
     #m.net_zero_industrialactbenchmark_b = pyomo.Constraint(m.stf, rule=net_zero_industrialactbenchmark_rule_b)
     #m.best_estimate_TYNDP2030 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2030_rule)
     #m.best_estimate_TYNDP2040 = pyomo.Constraint(m.stf, rule=best_estimate_TYNDP2040_rule)
@@ -634,14 +697,14 @@ def create_model(data, param_dict, importcost_dict, instalable_capacity_dict,
     #m.non_negativity_z_constraint_pri = pyomo.Constraint(m.stf, m.nsteps_pri, rule=non_negativity_z_eq_pri)
 
     #Eu_sec
-    m.costsavings_constraint_sec = pyomo.Constraint(m.stf, rule=costsavings_rule_sec)
-    m.BD_limitation_constraint_sec = pyomo.Constraint(m.stf, rule=BD_limitation_rule_sec)
-    m.relation_pnew_to_pprior_constraint_sec = pyomo.Constraint(m.stf, rule=relation_pnew_to_pprior_sec)
-    m.q_perstep_constraint_sec = pyomo.Constraint(m.stf,rule=q_perstep_rule_sec)
-    m.upper_bound_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=upper_bound_z_eq_sec)
-    m.upper_bound_z_q1_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=upper_bound_z_q1_eq_sec)
-    m.lower_bound_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=lower_bound_z_eq_sec)
-    m.non_negativity_z_constraint_sec = pyomo.Constraint(m.stf, m.nsteps_sec, rule=non_negativity_z_eq_sec)
+    m.costsavings_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, rule=costsavings_rule_sec)
+    m.BD_limitation_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, rule=BD_limitation_rule_sec)
+    m.relation_pnew_to_pprior_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, rule=relation_pnew_to_pprior_sec)
+    m.q_perstep_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech,rule=q_perstep_rule_sec)
+    m.upper_bound_z_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, m.nsteps_sec, rule=upper_bound_z_eq_sec)
+    m.upper_bound_z_q1_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, m.nsteps_sec, rule=upper_bound_z_q1_eq_sec)
+    m.lower_bound_z_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, m.nsteps_sec, rule=lower_bound_z_eq_sec)
+    m.non_negativity_z_constraint_sec = pyomo.Constraint(m.stf,m.location,m.tech, m.nsteps_sec, rule=non_negativity_z_eq_sec)
 
 
     # commodity constraints default
@@ -816,12 +879,15 @@ def res_vertex_rule(m,tm, stf, sit, com, com_type):
     #                       amount of the commodity com
     power_surplus = - commodity_balance(m,tm, stf, sit, com)
 
-
-    # Add solar capacity contribution to power surplus
+    # Add extra modelled capacity contribution to power surplus
     if com == "Elec":
-        power_surplus += m.balance_solar[stf]  # Adding total solar capacity in MWh
+        # Only add balance_ext where sit matches the location
+        for tech in m.tech:
+            for loc in m.location:
+                if loc == sit:  # Ensure we only sum for the correct site
+                    power_surplus += m.balance_ext[stf, loc, tech]
 
-        #print(power_surplus)
+    print(power_surplus)
     # if com is a stock commodity, the commodity source term e_co_stock
     # can supply a possibly negative power_surplus
     if com in m.com_stock:
@@ -1269,11 +1335,11 @@ def cost_rule(m): #urbs_solar Extention
 
     # Calculate total base costs from m.costs
     total_base_costs = pyomo.summation(m.costs)
-    total_solar_costs = pyomo.summation(m.costs_solar)
+    total_ext_costs = pyomo.summation(m.costs_new)
     #print("Total Base Costs:", total_base_costs)  # Print base costs for debugging
     #print("Total Urbs Solar Costs:", total_solar_costs)  # Print solar costs
     # Calculate the total combined costs
-    total_costs = total_base_costs + total_solar_costs
+    total_costs = total_base_costs + total_ext_costs
     #print("Total Combined Costs (Base + Solar):", total_costs)  # Print total costs
 
     return total_costs
@@ -1311,88 +1377,187 @@ def co2_rule(m):
 ##########################################################################################
 
 #calculate total urbs costs
-def def_costs_solar(m, cost_type_solar):
-    if cost_type_solar == 'Importcost':
-        total_import_cost = sum((m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf])) + (m.capacity_solar_stock_imported[stf]*m.logisticcost) + m.anti_dumping_measures[stf] for stf in m.stf)
-        #print("Calculating Import Cost Total:")
-        #print(f"Total Import Cost = {total_import_cost}")
-        return m.costs_solar[cost_type_solar] == total_import_cost
+def def_costs_new(m, cost_type_new):
+    if cost_type_new == 'Importcost':
+        # Calculating total import cost across all time steps, locations, and technologies
+        total_import_cost = sum(
+            (m.IMPORTCOST[stf,site,tech] * (
+                        m.capacity_ext_imported[stf, site, tech] + m.capacity_ext_stock_imported[stf, site, tech])) +
+            (m.capacity_ext_stock_imported[stf, site, tech] * m.logisticcost[site, tech]) +
+            m.anti_dumping_measures[stf, site, tech]
+            for stf in m.stf
+            for site in m.location
+            for tech in m.tech
+        )
 
-    elif cost_type_solar == 'Storagecost':
-        total_storage_cost = sum(m.STORAGECOST * (m.capacity_solar_stock[stf]) for stf in m.stf)
-        #print("Calculating Storage Cost Total:")
-        #print(f"Total Storage Cost = {total_storage_cost}")
-        return m.costs_solar[cost_type_solar] == total_storage_cost
+        print("Calculating Import Cost Total:")
+        print(f"Total Import Cost = {total_import_cost}")
+        return m.costs_new[cost_type_new] == total_import_cost
 
-    elif cost_type_solar == 'Eu Cost Primary':
-        total_eu_cost_primary = sum(((m.EU_primary_costs[stf]) * (m.capacity_solar_euprimary[stf])) for stf in m.stf)
+    elif cost_type_new == 'Storagecost':
+        # Calculating total storage cost across all time steps and locations/technologies if needed
+        total_storage_cost = sum(
+            m.STORAGECOST[site, tech] * m.capacity_ext_stock[stf, site, tech]
+            for stf in m.stf
+            for site in m.location
+            for tech in m.tech
+        )
+
+        print("Calculating Storage Cost Total:")
+        print(f"Total Storage Cost = {total_storage_cost}")
+        return m.costs_new[cost_type_new] == total_storage_cost
+
+    elif cost_type_new == 'Eu Cost Primary':
+        # Calculating total EU primary cost across all time steps
+        total_eu_cost_primary = sum(
+            m.EU_primary_costs[stf,site,tech] * m.capacity_ext_euprimary[stf, site, tech]
+            for stf in m.stf
+            for site in m.location
+            for tech in m.tech
+        )
+
         print("Calculating EU Primary Cost Total:")
         print(f"Total EU Primary Cost = {total_eu_cost_primary}")
-        return m.costs_solar[cost_type_solar] == total_eu_cost_primary
+        return m.costs_new[cost_type_new] == total_eu_cost_primary
 
-    elif cost_type_solar == 'Eu Cost Secondary':
-        total_eu_cost_secondary = sum((m.EU_secondary_costs[stf]-m.pricereduction_sec[stf]) * (m.capacity_solar_eusecondary[stf]) for stf in m.stf)
-        #print("Calculating EU Secondary Cost Total:")
-        #print(f"Total EU Secondary Cost = {total_eu_cost_secondary}")
-        return m.costs_solar[cost_type_solar] == total_eu_cost_secondary
+    elif cost_type_new == 'Eu Cost Secondary':
+        # Calculating total EU secondary cost across all time steps
+        total_eu_cost_secondary = sum(
+            (m.EU_secondary_costs[stf,site,tech] - m.pricereduction_sec[stf,site,tech]) * m.capacity_ext_eusecondary[stf, site, tech]
+            for stf in m.stf
+            for site in m.location
+            for tech in m.tech
+        )
+
+        print("Calculating EU Secondary Cost Total:")
+        print(f"Total EU Secondary Cost = {total_eu_cost_secondary}")
+        return m.costs_new[cost_type_new] == total_eu_cost_secondary
 
     else:
         raise NotImplementedError("Unknown cost type.")
 
+
 #Convert capacity solar MW to Balance MWh
-def convert_totalcapacity_to_balance(m,stf):
-    return m.balance_solar[stf] == m.capacity_solar[stf] * m.lf_solar * m.hours_year
 
-def convert_capacity_1_rule(m, stf):
-    return m.balance_import[stf] == m.capacity_solar_imported[stf] * m.lf_solar * m.hours_year
-def convert_capacity_2_rule(m, stf):
-    return m.balance_outofstock[stf] == m.capacity_solar_stockout[stf] * m.lf_solar * m.hours_year
-def convert_capacity_3_rule(m, stf):
-    return m.balance_EU_primary[stf] == m.capacity_solar_euprimary[stf] * m.lf_solar * m.hours_year
-def convert_capacity_4_rule(m, stf):
-    return m.balance_EU_secondary[stf] == m.capacity_solar_eusecondary[stf] * m.lf_solar * m.hours_year
+def convert_totalcapacity_to_balance(m, stf, location, tech):
+    balance_value = m.capacity_ext[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Capacity to Balance (Solar) = {balance_value}")
+    return m.balance_ext[stf, location, tech] == balance_value
 
-#Calculate yearly Solar Costs only for excel output
-def calculate_yearly_importcost(m,stf):
-        return m.costs_solar_import[stf] == m.IMPORTCOST[stf] * (m.capacity_solar_imported[stf] + m.capacity_solar_stock_imported[stf]) + (m.capacity_solar_stock_imported[stf]*m.logisticcost)+ m.anti_dumping_measures[stf]
-def calculate_yearly_storagecost(m,stf):
-    return m.costs_solar_storage[stf] == m.STORAGECOST * m.capacity_solar_stock[stf]
-def calculate_yearly_EU_primary(m,stf):
-    return m.costs_EU_primary[stf] == (m.EU_primary_costs[stf]) * m.capacity_solar_euprimary[stf]
-def calculate_yearly_EU_secondary(m,stf):
-    return m.costs_EU_secondary[stf] == (m.EU_secondary_costs[stf]-m.pricereduction_sec[stf]) * m.capacity_solar_eusecondary[stf]
+def convert_capacity_1_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_imported[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Balance (Imported Solar) = {balance_value}")
+    return m.balance_import_ext[stf, location, tech] == balance_value
+
+def convert_capacity_2_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_stockout[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Balance (Stockout Solar) = {balance_value}")
+    return m.balance_outofstock_ext[stf, location, tech] == balance_value
+
+def convert_capacity_3_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_euprimary[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Balance (EU Primary Solar) = {balance_value}")
+    return m.balance_EU_primary_ext[stf, location, tech] == balance_value
+
+def convert_capacity_4_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_eusecondary[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Balance (EU Secondary Solar) = {balance_value}")
+    return m.balance_EU_secondary_ext[stf, location, tech] == balance_value
+
+
+# Calculate yearly Solar Costs only for excel output
+def calculate_yearly_importcost(m, stf, location, tech):
+    import_cost_value = m.IMPORTCOST[stf,location,tech] * (m.capacity_ext_imported[stf, location, tech] + m.capacity_ext_stock_imported[stf, location, tech]) + (m.capacity_ext_stock_imported[stf, location, tech] * m.logisticcost[location, tech]) + m.anti_dumping_measures[stf, location, tech]
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Yearly Import Cost = {import_cost_value}")
+    return m.costs_ext_import[stf, location, tech] == import_cost_value
+
+def calculate_yearly_storagecost(m, stf, location, tech):
+    storage_cost_value = m.STORAGECOST[location, tech] * m.capacity_ext_stock[stf, location, tech]
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Yearly Storage Cost = {storage_cost_value}")
+    return m.costs_ext_storage[stf, location, tech] == storage_cost_value
+
+def calculate_yearly_EU_primary(m, stf, location, tech):
+    eu_primary_cost_value = m.EU_primary_costs[stf,location,tech] * m.capacity_ext_euprimary[stf, location, tech]
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Yearly EU Primary Cost = {eu_primary_cost_value}")
+    return m.costs_EU_primary[stf, location, tech] == eu_primary_cost_value
+
+def calculate_yearly_EU_secondary(m, stf, location, tech):
+    eu_secondary_cost_value = (m.EU_secondary_costs[stf,location,tech] - m.pricereduction_sec[stf,location, tech]) * m.capacity_ext_eusecondary[stf, location, tech]
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
+    print(f"Total Yearly EU Secondary Cost = {eu_secondary_cost_value}")
+    return m.costs_EU_secondary[stf, location, tech] == eu_secondary_cost_value
 
 
 
-# Constraint 1: capacity_solar_y = capacity_solar_y-1 + capacity_solar_new_y for all y > y0
-def capacity_solar_growth_rule(m, stf):
+
+# Constraint 1: capacity_ext_y = capacity_ext_y-1 + capacity_ext_new_y for all y > y0
+def capacity_ext_growth_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar[stf] == m.capacity_solar[stf-1] + m.capacity_solar_new[stf]
+        capacity_extensionpackage = m.capacity_ext[stf, location, tech] == m.capacity_ext[stf-1, location, tech] + m.capacity_ext_new[stf, location, tech]
+        print(f"Capacity extension package = {capacity_extensionpackage}")
+        return capacity_extensionpackage
 
-# Constraint 2: capacity_solar_y = Installed_Capacity_Q_s + capacity_solar_new_y for y = y0
-def initial_capacity_rule(m, stf):
+
+def initial_capacity_rule(m, stf, location, tech):
     if stf == m.y0:
-        return m.capacity_solar[stf] == m.Installed_Capacity_Q_s + m.capacity_solar_new[stf]
+        capacity_eq1 = m.capacity_ext[stf, location, tech] == m.Installed_Capacity_Q_s[location, tech] + m.capacity_ext_new[stf, location, tech]
+        print(f"Initial Capacity for {tech} at {location} in year {stf}: {m.capacity_ext[stf, location, tech]} = "
+              f"{m.Installed_Capacity_Q_s[location, tech]} + {m.capacity_ext_new[stf, location, tech]}")
+        return capacity_eq1
     else:
         return pyomo.Constraint.Skip
 
 #Constraint 3: capacity_solar_new_y = sum of capacities for all y
-def capacity_solar_new_rule(m, stf):
-    return m.capacity_solar_new[stf] == m.capacity_solar_imported[stf] + m.capacity_solar_stockout[stf] + m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf]
 
+def capacity_ext_new_rule(m, stf, location, tech):
+    capacity_eq2 = m.capacity_ext_new[stf, location, tech] == (m.capacity_ext_imported[stf, location, tech] +
+                                                                 m.capacity_ext_stockout[stf, location, tech] +
+                                                                 m.capacity_ext_euprimary[stf, location, tech] +
+                                                                 m.capacity_ext_eusecondary[stf, location, tech])
+    print(f"Capacity Extension New for {tech} at {location} in year {stf}: "
+          f"{m.capacity_ext_new[stf, location, tech]} = "
+          f"{m.capacity_ext_imported[stf, location, tech]} + "
+          f"{m.capacity_ext_stockout[stf, location, tech]} + "
+          f"{m.capacity_ext_euprimary[stf, location, tech]} + "
+          f"{m.capacity_ext_eusecondary[stf, location, tech]}")
+    return capacity_eq2
 #Constraint 4:
-def capacity_solar_stock_rule(m, stf):
+def capacity_ext_stock_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar_stock[stf] == m.capacity_solar_stock[stf-1] + m.capacity_solar_stock_imported[stf] - m.capacity_solar_stockout[stf]
+        capacity_eq3 = m.capacity_ext_stock[stf, location, tech] == (m.capacity_ext_stock[stf-1, location, tech] +
+                                                                      m.capacity_ext_stock_imported[stf, location, tech] -
+                                                                      m.capacity_ext_stockout[stf, location, tech])
+        print(f"Capacity Extension Stock for {tech} at {location} in year {stf}: "
+              f"{m.capacity_ext_stock[stf, location, tech]} = "
+              f"{m.capacity_ext_stock[stf-1, location, tech]} + "
+              f"{m.capacity_ext_stock_imported[stf, location, tech]} - "
+              f"{m.capacity_ext_stockout[stf, location, tech]}")
+        return capacity_eq3
 
 #Constraint 5:
-def capacity_solar_stock_initial_rule(m, stf):
+def capacity_ext_stock_initial_rule(m, stf, location, tech):
     if stf == m.y0:
-        return m.capacity_solar_stock[stf] == m.Existing_Stock_Q_stock + m.capacity_solar_stock_imported[stf] - m.capacity_solar_stockout[stf]
+        capacity_eq4 = m.capacity_ext_stock[stf, location, tech] == (m.Existing_Stock_Q_stock[location, tech] +
+                                                                      m.capacity_ext_stock_imported[stf, location, tech] -
+                                                                      m.capacity_ext_stockout[stf, location, tech])
+        print(f"Capacity Extension Stock Initial for {tech} at {location} in year {stf}: "
+              f"{m.capacity_ext_stock[stf, location, tech]} = "
+              f"{m.Existing_Stock_Q_stock[location, tech]} + "
+              f"{m.capacity_ext_stock_imported[stf, location, tech]} - "
+              f"{m.capacity_ext_stockout[stf, location, tech]}")
+        return capacity_eq4
     else:
         return pyomo.Constraint.Skip
 
@@ -1414,104 +1579,217 @@ def capacity_solar_stock_initial_rule(m, stf):
 
 
 
-#Constraint 10&11: stock turnover
-def stock_turnover_rule(m, stf):
+#Constraint 10&11: stock turnover #ToDo enable constraint to check math
+def stock_turnover_rule(m, stf, location, tech):
     valid_years = [2025, 2030, 2035, 2040, 2045]
+
+    # Ensure the constraint is only applied to valid years
     if stf in valid_years:
-        lhs = sum(m.capacity_solar_stockout[j] for j in range(stf , stf + m.n) if j in m.capacity_solar_stockout)
-        print("LHS",lhs)
+        # Left-hand side: sum of stock out for each location and tech
+        lhs = sum(m.capacity_ext_stockout[j, location, tech] for j in range(stf, stf + m.n) if
+                  j in m.capacity_ext_stockout)
+        print(f"LHS for {tech} at {location} in year {stf}: {lhs}")
+
+        # Right-hand side: sum of stock for each location and tech with scaling factor FT * (1/n)
         rhs = m.FT * (1 / m.n) * sum(
-            m.capacity_solar_stock[j] for j in range(stf, stf + m.n) if j in m.capacity_solar_stock)
-        print("RHS",rhs)
+            m.capacity_ext_stock[j, location, tech] for j in range(stf, stf + m.n) if j in m.capacity_ext_stock)
+        print(f"RHS for {tech} at {location} in year {stf}: {rhs}")
+
+        # Return the constraint for turnover
         return lhs >= rhs
     else:
         return pyomo.Constraint.Skip
 
 
 #Constraint 12:
-def anti_dumping_measures_rule(m, stf):
-    return m.anti_dumping_measures[stf] == m.anti_dumping_index * (m.capacity_solar_imported[stf]+ m.capacity_solar_stock_imported[stf])
+def anti_dumping_measures_rule(m, stf, location, tech):
+    # Calculate the right-hand side for anti-dumping measures with location and tech indices
+    rhs = m.anti_dumping_index[location, tech] * (
+                m.capacity_ext_imported[stf, location, tech] + m.capacity_ext_stock_imported[stf, location, tech])
+
+    # Print for debugging purposes
+    print(f"Anti-Dumping Measure for {tech} at {location} in year {stf}: "
+          f"{m.anti_dumping_measures[stf, location, tech]} = {m.anti_dumping_index[location, tech]} * "
+          f"({m.capacity_ext_imported[stf, location, tech]} + "
+          f"{m.capacity_ext_stock_imported[stf, location, tech]})")
+
+    # Return the constraint expression
+    return m.anti_dumping_measures[stf, location, tech] == rhs
+
 
 #Constraint 13:
-def capacity_solar_new_limit_rule(m, stf):
+def capacity_ext_new_limit_rule(m, stf, location, tech):
     # Retrieve the values for debugging
-    capacity_value = m.capacity_solar_new[stf]
-    solar_new_value = m.Q_Solar_new[stf]
+    capacity_value = m.capacity_ext_new[stf, location, tech]
+    ext_new_value = m.Q_ext_new[stf, location, tech]
 
-    # Print values for debugging
-    #print(f"Debug: STF = {stf}, Capacity Solar New = {capacity_value}, max instalable Capacity = {solar_new_value}")
+    # Debug print statements to see the values being used
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, Capacity Solar New = {capacity_value}, max instalable Capacity = {ext_new_value}")
 
-    # Return the constraint
-    return capacity_value <= solar_new_value
+    # Return the constraint with the debug information
+    return capacity_value <= ext_new_value
+
 
 
 #Constraint 14: time delay constraint for Eu primary
-def timedelay_EU_primary_production_rule(m, stf):
+def timedelay_EU_primary_production_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar_euprimary[stf] - m.capacity_solar_euprimary[stf-1] <= \
-            m.deltaQ_EUprimary + m.IR_EU_primary * m.capacity_solar_euprimary[stf-1]
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_euprimary[stf, location, tech] - m.capacity_ext_euprimary[stf - 1, location, tech]
+        rhs = m.deltaQ_EUprimary[location, tech] + m.IR_EU_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech]
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs <= rhs
+
 
 #Constraint 15: time delay constraint for EU secondary
-def timedelay_EU_secondary_production_rule(m, stf):
+def timedelay_EU_secondary_production_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar_eusecondary[stf] - m.capacity_solar_eusecondary[stf-1] <= \
-            m.deltaQ_EUsecondary + m.IR_EU_secondary * m.capacity_solar_eusecondary[stf-1]
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_eusecondary[stf, location, tech] - m.capacity_ext_eusecondary[stf - 1, location, tech]
+        rhs = m.deltaQ_EUsecondary[location, tech] + m.IR_EU_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech]
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs <= rhs
+
 
 #Constraint 16:
-def constraint1_EU_secondary_to_total_rule(m, stf):
-    if m.y0 <= stf-m.l:
-        return m.capacity_solar_eusecondary[stf] <= m.capacity_solar_new[stf-m.l]
+def constraint1_EU_secondary_to_total_rule(m, stf, location, tech):
+    if m.y0 <= stf - m.l[location, tech]:
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_eusecondary[stf, location, tech]
+        rhs = m.capacity_ext_new[stf - m.l, location, tech]
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs <= rhs
     else:
         return pyomo.Constraint.Skip
 
 #Constraint 17:
-def constraint2_EU_secondary_to_total_rule(m, stf):
-    if m.y0 >= stf-m.l:
-        return m.capacity_solar_eusecondary[stf] <= m.DCR_solar[stf] * m.capacity_solar[stf]
+def constraint2_EU_secondary_to_total_rule(m, stf, location, tech):
+    if m.y0 >= stf - m.l[location, tech]:
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_eusecondary[stf, location, tech]
+        rhs = m.DCR_solar[stf, location, tech] * m.capacity_ext[stf, location, tech] #ToDo DCR Solar for other techs
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs <= rhs
     else:
         return pyomo.Constraint.Skip
+
 
 #Constraint 18:
-def constraint_EU_primary_to_total_rule(m, stf):
+def constraint_EU_primary_to_total_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar_euprimary[stf] >= m.DR_primary * m.capacity_solar_euprimary[stf-1]
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_euprimary[stf, location, tech]
+        rhs = m.DR_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech]
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs >= rhs
+
 
 #Constraint 19:
-def constraint_EU_secondary_to_secondary_rule(m, stf):
+def constraint_EU_secondary_to_secondary_rule(m, stf, location, tech):
     if stf == m.y0:
         return pyomo.Constraint.Skip
     else:
-        return m.capacity_solar_eusecondary[stf] >= m.DR_secondary * m.capacity_solar_eusecondary[stf-1]
+        # Retrieve values for debugging
+        lhs = m.capacity_ext_eusecondary[stf, location, tech]
+        rhs = m.DR_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech]
+
+        # Print both sides for debugging
+        print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+        return lhs >= rhs
+
 
 #Addition made on 28th November:
 
-def net_zero_industrialactbenchmark_rule_a(m, stf):
-  return (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf] + m.capacity_solar_stockout[stf]-m.capacity_solar_stock_imported[stf]) >= (0.4 * m.capacity_solar_new[stf])
+def net_zero_industrialactbenchmark_rule_a(m, stf, location, tech):
+    lhs = (m.capacity_ext_euprimary[stf, location, tech] +
+           m.capacity_ext_eusecondary[stf, location, tech] +
+           m.capacity_ext_stockout[stf, location, tech] -
+           m.capacity_ext_stock_imported[stf, location, tech])
 
-def net_zero_industrialactbenchmark_rule_b(m, stf):
-  return   (m.capacity_solar_euprimary[stf] + m.capacity_solar_eusecondary[stf]) >= (0.4 * m.capacity_solar_new[stf])
+    rhs = (0.4 * m.capacity_ext_new[stf, location, tech])
+
+    # Print both sides for debugging
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+    return lhs >= rhs
+
+
+def net_zero_industrialactbenchmark_rule_b(m, stf, location, tech):
+    lhs = (m.capacity_ext_euprimary[stf, location, tech] +
+           m.capacity_ext_eusecondary[stf, location, tech])
+
+    rhs = (0.4 * m.capacity_ext_new[stf, location, tech])
+
+    # Print both sides for debugging
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+    return lhs >= rhs
 
 #Addition made on 29th November:
-def best_estimate_TYNDP2030_rule(m, stf):
-    return sum(m.capacity_solar_new[stf] for stf in m.stf if stf <= 2030) <= 558118
-def best_estimate_TYNDP2040_rule(m, stf):
-    return sum(m.capacity_solar_new[stf] for stf in m.stf if stf <= 2040) <= 1177233
-def best_estimate_TYNDP2050_rule(m, stf):
-    return sum(m.capacity_solar_new[stf] for stf in m.stf if stf <= 2050) <= 1753785
-#TBD
+def best_estimate_TYNDP2030_rule(m, stf, location, tech):
+    lhs = sum(m.capacity_ext_new[stf, location, tech] for stf in m.stf if stf <= 2030)
 
-def max_intostock_rule(m, stf):
-    return (m.capacity_solar_stock_imported[stf]) <= (0.5 * m.capacity_solar_imported[stf])
+    # Print the sum for debugging
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, Total Solar Capacity for TYNDP2030 = {lhs}")
 
+    return lhs <= 558118
 
-def minimum_stock_level_rule(m,stf):
-    return (m.min_stocklvl[stf]) <= (m.capacity_solar_stock[stf])
+def best_estimate_TYNDP2040_rule(m, stf, location, tech):
+    lhs = sum(m.capacity_ext_new[stf, location, tech] for stf in m.stf if stf <= 2040)
+
+    # Print the sum for debugging
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, Total Solar Capacity for TYNDP2040 = {lhs}")
+
+    return lhs <= 1177233
+
+def best_estimate_TYNDP2050_rule(m, stf, location, tech):
+    lhs = sum(m.capacity_ext_new[stf, location, tech] for stf in m.stf if stf <= 2050)
+
+    # Print the sum for debugging
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, Total Solar Capacity for TYNDP2050 = {lhs}")
+
+    return lhs <= 1753785
+
+def max_intostock_rule(m, stf, location, tech):
+    # Calculate the left-hand side (LHS) and right-hand side (RHS)
+    lhs = m.capacity_ext_stock_imported[stf, location, tech]
+    rhs = 0.5 * m.capacity_ext_imported[stf, location, tech]
+
+    # Debugging: Print the LHS and RHS values
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+    return lhs <= rhs
+
+def minimum_stock_level_rule(m, stf, location, tech):
+    lhs = m.min_stocklvl[stf, location, tech]
+    rhs = m.capacity_ext_stock[stf, location, tech]
+
+    # Debugging: Print the LHS and RHS values
+    print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
+
+    return lhs <= rhs
 
 
 ########################################
@@ -1588,43 +1866,48 @@ def non_negativity_z_eq_pri(m, stf, nsteps_pri):
 
 #-------EU-Secondary-------#
 #equation 1
-def costsavings_rule_sec(m, stf):
+def costsavings_rule_sec(m, stf, location, tech):
     # Debug statement to check the components of the sum
-    #print(f"costsavings_rule for stf={stf}:")
-    pricereduction_value_sec = sum(m.P_sec[n] * m.BD_sec[stf, n] for n in m.nsteps_sec)
-    print(f"Calculated pricereduction: {pricereduction_value_sec}")
+    pricereduction_value_sec = sum(m.P_sec[n, tech, location] * m.BD_sec[stf, location, tech, n] for n in m.nsteps_sec)
+    print(f"Calculated pricereduction for {stf}, {location}, {tech}: {pricereduction_value_sec}")
 
-    return m.pricereduction_sec[stf] == pricereduction_value_sec
+    return m.pricereduction_sec[stf, location, tech] == pricereduction_value_sec
 # equation 2
-def BD_limitation_rule_sec(m, stf):
+def BD_limitation_rule_sec(m, stf, location, tech):
     # Debug statement to print the sum of BD[stf, n]
-    bd_sum_value_sec = sum(m.BD_sec[stf, n] for n in m.nsteps_sec)
-    print(f"BD_limitation_rule for stf={stf}: Sum of BD is {bd_sum_value_sec}")
+    bd_sum_value_sec = sum(m.BD_sec[stf, location, tech, n] for n in m.nsteps_sec)
+    print(f"BD_limitation_rule for stf={stf}, Location={location}, Tech={tech}: Sum of BD is {bd_sum_value_sec}")
 
     return bd_sum_value_sec <= 1
 # equation 3
-def relation_pnew_to_pprior_sec(m, stf):
-    # Debug statement to print current price reduction values for stf and previous step
+def relation_pnew_to_pprior_sec(m, stf, location, tech):
     if stf == m.y0:
-        #print(f"relation_pnew_to_pprior: Skip for stf={stf} as it's the first time step (y0)")
+        # Skip for the first time step
         return pyomo.Constraint.Skip
     else:
-        #print(f"relation_pnew_to_pprior: Comparing pricereduction for stf={stf} and stf-1")
-        #print(
-            #f"pricereduction[{stf}] = {m.pricereduction_sec[stf]}, pricereduction[{stf - 1}] = {m.pricereduction_sec[stf - 1]}")
-        return m.pricereduction_sec[stf] >= m.pricereduction_sec[stf - 1]
+        # Debug: Print the comparison between current and previous pricereduction
+        print(f"Debug: relation_pnew_to_pprior_sec for stf={stf}: pricereduction[{stf}] = {m.pricereduction_sec[stf, location, tech]}, pricereduction[{stf - 1}] = {m.pricereduction_sec[stf - 1, location, tech]}")
+        return m.pricereduction_sec[stf, location, tech] >= m.pricereduction_sec[stf - 1, location, tech]
 # equation 4
-def q_perstep_rule_sec(m, stf):
+def q_perstep_rule_sec(m, stf, location, tech):
     lhs_cumulative_sum_sec = 0  # Reset LHS for each year
     rhs_value_sec = 0  # Reset RHS for each year
+
+    # Debugging: Check if the indices are correct
+    print(f"Running q_perstep_rule_sec for stf={stf}, location={location}, tech={tech}")
 
     # Update cumulative sum for LHS (only for the current year)
     for year in m.stf:
         if year <= stf:  # Accumulate up to the current year (stf)
-            lhs_cumulative_sum_sec += m.capacity_solar_eusecondary[year]
+            try:
+                lhs_cumulative_sum_sec += m.capacity_ext_eusecondary[year, location, tech]
+            except KeyError:
+                print(f"KeyError: capacity_ext_eusecondary[{year}, {location}, {tech}]")
+                raise
 
     # Calculate RHS based on selected stages (only for the current year)
-    rhs_value_sec = sum(m.BD_sec[stf, n] * m.capacityperstep_sec[n] for n in m.nsteps_sec)
+    rhs_value_sec = sum(
+        m.BD_sec[stf, location, tech, n] * m.capacityperstep_sec[n, location, tech] for n in m.nsteps_sec)
 
     # Debug: Print LHS and selected RHS value for each year
     print(f"Step {stf}: LHS cumulative sum = {lhs_cumulative_sum_sec}, RHS value = {rhs_value_sec}")
@@ -1632,15 +1915,40 @@ def q_perstep_rule_sec(m, stf):
     # Return the constraint for this specific year
     return lhs_cumulative_sum_sec >= rhs_value_sec
 
+
 # equation 5: z <= gamma * BD
-def upper_bound_z_eq_sec(m, stf, nsteps_sec):
-    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf])  <= m.gamma_sec * m.BD_sec[stf, nsteps_sec]
+def upper_bound_z_eq_sec(m, stf ,location, tech, nsteps_sec):
+    lhs_value = m.BD_sec[stf, location, tech, nsteps_sec] * m.capacity_ext_eusecondary[stf,location, tech]
+    rhs_value = m.gamma_sec * m.BD_sec[stf, location, tech, nsteps_sec]
+
+    # Debug: Print the left-hand side and right-hand side for upper bound comparison
+    print(f"Debug: upper_bound_z_eq_sec for stf={stf}, nsteps_sec={nsteps_sec}: LHS = {lhs_value}, RHS = {rhs_value}")
+
+    return lhs_value <= rhs_value
 # equation 6: z <= q1
-def upper_bound_z_q1_eq_sec(m, stf, nsteps_sec):
-    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) <= m.capacity_solar_eusecondary[stf]
+def upper_bound_z_q1_eq_sec(m, stf,location, tech, nsteps_sec):
+    lhs_value = m.BD_sec[stf, location, tech, nsteps_sec] * m.capacity_ext_eusecondary[stf,location, tech]
+    rhs_value = m.capacity_ext_eusecondary[stf,location, tech]
+
+    # Debug: Print the left-hand side and right-hand side for upper bound comparison
+    print(
+        f"Debug: upper_bound_z_q1_eq_sec for stf={stf}, nsteps_sec={nsteps_sec}: LHS = {lhs_value}, RHS = {rhs_value}")
+
+    return lhs_value <= rhs_value
 # equation 7: z >= q1 - (1 - BD) * gamma
-def lower_bound_z_eq_sec(m, stf, nsteps_sec):
-    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) >= m.capacity_solar_eusecondary[stf] - (1 - m.BD_sec[stf, nsteps_sec]) * m.gamma_sec
+def lower_bound_z_eq_sec(m, stf,location, tech, nsteps_sec):
+    lhs_value = m.BD_sec[stf, location, tech, nsteps_sec] * m.capacity_ext_eusecondary[stf,location, tech]
+    rhs_value = m.capacity_ext_eusecondary[stf,location, tech] - (1 - m.BD_sec[stf, location, tech, nsteps_sec]) * m.gamma_sec
+
+    # Debug: Print the left-hand side and right-hand side for lower bound comparison
+    print(f"Debug: lower_bound_z_eq_sec for stf={stf}, nsteps_sec={nsteps_sec}: LHS = {lhs_value}, RHS = {rhs_value}")
+
+    return lhs_value >= rhs_value
 # equation 8: z >= 0 (Non-negativity)
-def non_negativity_z_eq_sec(m, stf, nsteps_sec):
-    return (m.BD_sec[stf, nsteps_sec] * m.capacity_solar_eusecondary[stf]) >= 0
+def non_negativity_z_eq_sec(m, stf,location, tech, nsteps_sec):
+    lhs_value = m.BD_sec[stf, location, tech, nsteps_sec] * m.capacity_ext_eusecondary[stf,location, tech]
+
+    # Debug: Print the value of the non-negativity constraint
+    print(f"Debug: non_negativity_z_eq_sec for stf={stf}, nsteps_sec={nsteps_sec}: LHS = {lhs_value}")
+
+    return lhs_value >= 0
