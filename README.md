@@ -92,17 +92,11 @@ and look at the new files `result/mimo-example-.../comparison.xlsx` and `result/
   - Branch [haag15](https://github.com/ojdo/urbs/tree/haag15) in the forked repository [ojdo/urbs](https://github.com/ojdo/urbs) shows a larger example of a real-world use. Its input file contains a town divided into 12 regions, 12 process types, and 2 demand commodities (electricity and heat) . Patience and RAM (64 GB or more) is needed to run these scenarios with 8760 timesteps. The branch also contains three IPython notebooks that are used for result analysis and coupling to model [rivus](https://github.com/tum-ens/rivus).
   
 ## List of branches
-  - ASEAN
-  - CoTraDis
-  - decensys
-  - extremos
-  - MIQCP
-  - near_optimal
-  - urbs_gui
+
 
 ## Copyright
 
-Copyright (C) 2014-2019  TUM ENS
+Copyright (C) 2025  TU Wien, EEG
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
