@@ -109,7 +109,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
         'eu_primary_cost': 'eu_primary_cost_dict',
         'eu_secondary_cost': 'eu_secondary_cost_dict',
         'dcr': 'dcr_dict',
-        'stocklvl': 'stocklvl_dict'
+        'stocklvl': 'stocklvl_dict',
 
     }
 
@@ -275,13 +275,37 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
         return stocklvl_dict
 
+    def process_loadfactors_sheet(sheet_data):
+        """Processes the DCR (depreciation cost rate) data into a dictionary indexed by (year, location, technology)."""
+        loadfactors_dict = {}
+
+        # Set 'Stf' (year column) as the index
+        sheet_data = sheet_data.set_index("Stf")
+
+        # Iterate over the columns (technologies and locations)
+        for col in sheet_data.columns:
+            # Each column is in the form 'technology.location' (e.g., 'solarPV.EU27')
+            parts = col.split("_")
+            if len(parts) < 2:
+                continue  # Skip columns that don't match the expected format (i.e., 'tech.location')
+
+            tech = parts[1]  # Extract technology (e.g., "solarPV")
+            location = parts[0]  # Extract location (e.g., "EU27")
+
+            # Iterate over the rows (years) for each column
+            for year, value in sheet_data[col].items():
+                # Store the value in the dictionary as (year, location, technology) : dcr value
+                loadfactors_dict[(year, location, tech)] = value
+
+        return loadfactors_dict
+
     def load_data_from_excel(file_path):
         """Loads data from Excel and processes all relevant sheets."""
         # Read all sheets
         base_data = pd.read_excel(file_path, sheet_name="Base")
         cost_sheet = pd.read_excel(file_path, sheet_name="cost_sheet")
         locations_data = pd.read_excel(file_path, sheet_name="locations")
-        #loadfactors_data = pd.read_excel(file_path, sheet_name="loadfactors")
+        loadfactors_data = pd.read_excel(file_path, sheet_name="loadfactors")
         technologies_data = pd.read_excel(file_path, sheet_name="Technologies")
         dcr_data = pd.read_excel(file_path, sheet_name="dcr")
         stocklvl_data = pd.read_excel(file_path, sheet_name="stocklvl")
@@ -293,6 +317,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
         stocklvl_dict = process_stocklvl_sheet(stocklvl_data)
         dcr_dict = process_dcr_sheet(dcr_data)
         installable_capacity_dict = process_installable_capacity_sheet(installable_capacity_data)
+        loadfactors_dict = process_loadfactors_sheet(loadfactors_data)
         # Extract base parameters from the Base sheet
         base_params = {
             "y0": int(base_data.loc[base_data["Param"] == "Start Year y0", "Value"].values[0]),
@@ -316,7 +341,7 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
             "manufacturingcost_dict": manufacturingcost_dict,
             "remanufacturingcost_dict": remanufacturingcost_dict,
             "locations_list": locations_list,
-            #"loadfactors": loadfactors_data,
+            "loadfactors_dict": loadfactors_dict,
             "technologies": technologies_dict, #techs stored as dict
             "dcr_dict": dcr_dict,
             "stocklvl_dict": stocklvl_dict,
@@ -332,12 +357,12 @@ def run_scenario(input_files, Solver, timesteps, scenario, result_dir, dt,
 
     ### --------end of urbs-extensionv1.0 input data addition-------- ###
 
-    data,data_urbsextensionv1,param_dict = scenario(data,data_urbsextensionv1.copy(),param_dict.copy(),)
+    data,data_urbsextensionv1 = scenario(data,data_urbsextensionv1.copy())
     validate_input(data)
     validate_dc_objective(data, objective)
 
     # create model
-    prob = create_model(data,data_urbsextensionv1, param_dict, dt, timesteps, objective)
+    prob = create_model(data,data_urbsextensionv1, dt, timesteps, objective)
 
     # prob_filename = os.path.join(result_dir, 'model.lp')
     # prob.write(prob_filename, io_options={'symbolic_solver_labels':True})

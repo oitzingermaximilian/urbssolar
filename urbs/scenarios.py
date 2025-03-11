@@ -17,9 +17,9 @@ from openpyxl import load_workbook
 
 
 #base
-def scenario_base(data,data_urbsextensionv1,param_dict):
+def scenario_base(data,data_urbsextensionv1):
     # do nothing
-    return data,data_urbsextensionv1,param_dict
+    return data,data_urbsextensionv1
 
 def scenario_base_nocap(data,param_dict,importcost_dict, instalable_capacity_dict, eu_primary_cost_dict, eu_secondary_cost_dict,dcr_dict,stocklvl_dict):
     if not data:

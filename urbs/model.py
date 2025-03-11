@@ -5,7 +5,7 @@ from .features import *
 from .input import *
 
 
-def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
+def create_model(data,data_urbsextensionv1,dt=8760,
                  timesteps=None, objective='cost',dual = None):
     """Create a pyomo ConcreteModel urbs object from given input data.
 
@@ -145,7 +145,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         doc='Set of cost types (hard-coded)')
 
     ###############################################
-    # universal sets and params for extension v1.0#     5th March 2025
+    # universal sets and params for extension v1.0#
     ###############################################
 
     #Excel read in
@@ -159,7 +159,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
     m.y_end = pyomo.Param(initialize=base_params["y_end"])  # End year
     m.hours_year = pyomo.Param(initialize=base_params["hours"])  # Hours per year
     # locations sheet read in
-    m.location = pyomo.Set(initialize=data_urbsextensionv1["locations_list"])  # Spatial Resolution
+    m.location = pyomo.Set(initialize=data_urbsextensionv1["locations_list"])  # sites to be modelled
 
     # Extract all unique technologies across all locations
     all_techs = set()
@@ -203,7 +203,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
     m.min_stocklvl = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["stocklvl_dict"])
     #loadfactors sheet read in
     # Capacity to Balance with loadfactor and h/a
-    m.lf_solar = pyomo.Param(initialize=float(param_dict['lf Solar']))  # lf Solar #ToDo make universal
+    m.lf_solar = pyomo.Param(m.stf,m.location,m.tech, initialize=data_urbsextensionv1["loadfactors_dict"])  # lf Solar
 
 
 
@@ -213,7 +213,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
     # dynamic feedback loop EEM sets and params#     13. January 2025
     ########################################
 
-    # -------EU-Primary-------# ToDo enable if needed, probably not
+    # -------EU-Primary-------# ToDo enable if needed
     #index set for n (=steps of linearization)
     #m.nsteps_pri = pyomo.Set(initialize=range(0, 7))
     #param def for price reduction
@@ -280,7 +280,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
     #    5: 410518.1277,
     #    6: 412661.0161
     #})
-
+    #EEM6 LR 2.5%
     variation_6 = {
         0: 0,
         1: 33395.02122,
@@ -290,7 +290,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 142123.9441,
         6: 164054.6365
     }
-
+    # EEM7 LR 3%
     variation_7 = {
         0: 0,
         1: 39840.31305,
@@ -300,7 +300,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 164377.572,
         6: 188399.3973
     }
-
+    # EEM8 LR 3.5%
     variation_8 = {
         0: 0,
         1: 46208.92298,
@@ -310,7 +310,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 184910.8195,
         6: 210480.7816
     }
-
+    # EEM9 LR 4%
     variation_9 = {
         0: 0,
         1: 52501.37307,
@@ -320,7 +320,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 203848.7895,
         6: 230499.0966
     }
-
+    # EEM10 LR 4.5%
     variation_10 = {
         0: 0,
         1: 58718.18454,
@@ -330,7 +330,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 221308.0674,
         6: 248637.827
     }
-
+    # EEM11 LR 3.75%
     variation_11 = {
         0: 0,
         1: 49364.63541,
@@ -340,6 +340,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 194571.7345,
         6: 220735.9768
     }
+    # EEM12 LR 3.6%
     variation_12 = {
         0: 0,
         1: 47473.48909,
@@ -349,7 +350,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 188822.1859,
         6: 214643.3852
     }
-
+    # EEM13 LR 3.7%
     variation_13 = {
         0: 0,
         1: 48735.01299,
@@ -359,6 +360,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
         5: 192670.7272,
         6: 218725.0388
     }
+    # EEM14 LR 3.55%
     # Define variation_14 correctly for each (nsteps_sec, tech) combination.
     # Assuming wind is added to m.tech and further locations
     # P_sec initialization (price reduction)
@@ -641,7 +643,7 @@ def create_model(data,data_urbsextensionv1, param_dict,dt=8760,
 
 
     ##################################
-    # Constraints used for urbs_solar#
+    # Constraints used for urbs_ext  #
     ##################################
 
     m.capacity_ext_growth_constraint = pyomo.Constraint(m.stf, m.location, m.tech, rule=capacity_ext_growth_rule)
@@ -1437,32 +1439,32 @@ def def_costs_new(m, cost_type_new):
 
 #Convert capacity solar MW to Balance MWh
 
-def convert_totalcapacity_to_balance(m, stf, location, tech): #ToDo change lf_solar to universal index
-    balance_value = m.capacity_ext[stf, location, tech] * m.lf_solar * m.hours_year
+def convert_totalcapacity_to_balance(m, stf, location, tech):
+    balance_value = m.capacity_ext[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Capacity to Balance (Solar) = {balance_value}")
     return m.balance_ext[stf, location, tech] == balance_value
 
-def convert_capacity_1_rule(m, stf, location, tech): #ToDo change lf_solar to universal index
-    balance_value = m.capacity_ext_imported[stf, location, tech] * m.lf_solar * m.hours_year
+def convert_capacity_1_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_imported[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Balance (Imported Solar) = {balance_value}")
     return m.balance_import_ext[stf, location, tech] == balance_value
 
-def convert_capacity_2_rule(m, stf, location, tech): #ToDo change lf_solar to universal index
-    balance_value = m.capacity_ext_stockout[stf, location, tech] * m.lf_solar * m.hours_year
+def convert_capacity_2_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_stockout[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Balance (Stockout Solar) = {balance_value}")
     return m.balance_outofstock_ext[stf, location, tech] == balance_value
 
-def convert_capacity_3_rule(m, stf, location, tech): #ToDo change lf_solar to universal index
-    balance_value = m.capacity_ext_euprimary[stf, location, tech] * m.lf_solar * m.hours_year
+def convert_capacity_3_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_euprimary[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Balance (EU Primary Solar) = {balance_value}")
     return m.balance_EU_primary_ext[stf, location, tech] == balance_value
 
-def convert_capacity_4_rule(m, stf, location, tech): #ToDo change lf_solar to universal index
-    balance_value = m.capacity_ext_eusecondary[stf, location, tech] * m.lf_solar * m.hours_year
+def convert_capacity_4_rule(m, stf, location, tech):
+    balance_value = m.capacity_ext_eusecondary[stf, location, tech] * m.lf_solar[stf, location, tech] * m.hours_year
     print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}")
     print(f"Total Balance (EU Secondary Solar) = {balance_value}")
     return m.balance_EU_secondary_ext[stf, location, tech] == balance_value
@@ -1674,13 +1676,6 @@ def constraint1_EU_secondary_to_total_rule(m, stf, location, tech):
         return pyomo.Constraint.Skip
 
 #Constraint 17:
-def constraint2_EU_secondary_to_total_rule(m, stf,location, tech):
-    if m.y0 >= stf-m.l[location, tech]:
-        return m.capacity_solar_eusecondary[stf] <= m.DCR_solar[stf] * m.capacity_solar[stf]
-    else:
-        return pyomo.Constraint.Skip
-
-
 def constraint2_EU_secondary_to_total_rule(m, stf, location, tech):
     if m.y0 >= stf - m.l[location, tech]:
         # Retrieve values for debugging
@@ -1702,7 +1697,7 @@ def constraint_EU_primary_to_total_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_euprimary[stf, location, tech]
-        rhs = m.DR_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech] #ToDo DR Solar for other techs
+        rhs = m.DR_primary[location, tech] * m.capacity_ext_euprimary[stf - 1, location, tech]
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")
@@ -1717,7 +1712,7 @@ def constraint_EU_secondary_to_secondary_rule(m, stf, location, tech):
     else:
         # Retrieve values for debugging
         lhs = m.capacity_ext_eusecondary[stf, location, tech]
-        rhs = m.DR_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech] #ToDo DR Solar for other techs
+        rhs = m.DR_secondary[location, tech] * m.capacity_ext_eusecondary[stf - 1, location, tech]
 
         # Print both sides for debugging
         print(f"Debug: STF = {stf}, Location = {location}, Tech = {tech}, LHS = {lhs}, RHS = {rhs}")

@@ -133,21 +133,19 @@ def get_constants(instance):
         ['stf', 'pro'])['process_costs'].sum().reset_index()
     df_process_summed.rename(columns={'process_costs': 'Total_Cost'}, inplace=True)
 
-    # Process the yearly_cost_ext data
     df_ext_melted = yearly_cost_ext.reset_index().melt(
         id_vars=['stf', 'location', 'tech'],
         var_name='cost_type',
         value_name='Total_Cost'
     )
 
-    # Prepend the technology name to the cost type
     df_ext_melted['pro'] = df_ext_melted['tech'] + '_' + df_ext_melted['cost_type']
 
-    # Filter out rows where 'cost_type' is not a cost type (optional, if needed)
+
     cost_types_ext = ['costs_ext_import', 'costs_ext_storage', 'costs_EU_primary', 'costs_EU_secondary']
     df_ext_melted_filtered = df_ext_melted[df_ext_melted['cost_type'].isin(cost_types_ext)]
 
-    # Combine the data
+
     cost_df_combined = pd.concat([df_process_summed, df_ext_melted_filtered[['stf', 'pro', 'Total_Cost']]],
                                  ignore_index=True)
     cost_df_combined = round(cost_df_combined.groupby(['stf', 'pro'])['Total_Cost'].sum().reset_index(), 2)
